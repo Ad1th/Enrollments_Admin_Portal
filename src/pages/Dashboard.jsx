@@ -1,14 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminService } from '../api/services';
-import { Card, Input } from '../components/ResultComponents';
+import { Button, Input, Card } from '../components/ResultComponents';
+import Layout from '../components/Layout';
+import { FaSearch, FaUserGraduate, FaCode, FaPaintBrush, FaTasks, FaDownload, FaChartPie } from 'react-icons/fa';
 import UserDetailModal from '../components/UserDetailModal';
-import { FaSearch, FaFilter } from 'react-icons/fa';
+import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const Dashboard = ({ defaultDomain }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   
   // New States for Sorting/Filtering
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc' for meeting time
@@ -108,6 +113,69 @@ const Dashboard = ({ defaultDomain }) => {
     return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (processedUsers.length === 0) return;
+
+    const headers = ['Name', 'RegNo', 'Mobile', 'Email', 'Tech Status', 'Design Status', 'Management Status', 'Meeting Time'];
+    const rows = processedUsers.map(u => [
+        u.username,
+        u.regno,
+        u.mobile,
+        u.email,
+        u.tech,
+        u.design,
+        u.management,
+        u.meetingTime ? new Date(u.meetingTime).toLocaleString() : 'Not Scheduled'
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `mfc_recruitment_export_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Analytics Data Preparation
+  const getAnalyticsData = () => {
+    // Status Distribution
+    const statusCounts = { 'Rejected': 0, 'Round 0': 0, 'Round 1': 0, 'Round 2': 0, 'Round 3': 0 };
+    users.forEach(u => {
+        let level = 0;
+        if (defaultDomain) level = u[defaultDomain];
+        else level = Math.max(u.tech, u.design, u.management); // Aggregate max for overview
+
+        if (level === -1) statusCounts['Rejected']++;
+        else if (level >= 0 && level <= 3) statusCounts[`Round ${level}`]++;
+    });
+    
+    const statusData = Object.keys(statusCounts).map(k => ({ name: k, value: statusCounts[k] }));
+
+    // Subdomain Distribution
+    const subCounts = {};
+    users.forEach(u => {
+         // Aggregate all tasks
+         const tasks = [...(u.techTasks || []), ...(u.designTasks || []), ...(u.managementTasks || [])];
+         tasks.forEach(t => {
+             if (t && t.subdomain) {
+                 t.subdomain.forEach(s => {
+                     subCounts[s] = (subCounts[s] || 0) + 1;
+                 });
+             }
+         });
+    });
+    const subData = Object.keys(subCounts).map(k => ({ name: k, value: subCounts[k] })).sort((a,b) => b.value - a.value).slice(0, 5); // Top 5
+
+    return { statusData, subData };
+  };
+
+  const { statusData, subData } = getAnalyticsData();
+
   return (
     <div className="container" style={{ maxWidth: '1600px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
@@ -118,12 +186,45 @@ const Dashboard = ({ defaultDomain }) => {
           <p style={{ color: 'var(--text-muted)' }}>Manage and track recruitment participants</p>
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
+           <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} title="Toggle Analytics">
+                <FaChartPie /> {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+           </Button>
           <div className="status-card" style={{ backgroundColor: 'var(--bg-card)', padding: '16px 32px', borderRadius: '12px', boxShadow: 'var(--shadow)', border: '1px solid var(--border-color)' }}>
             <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '4px' }}>TOTAL PARTICIPANTS</span>
             <span style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>{users.length}</span>
           </div>
         </div>
       </div>
+
+      {showAnalytics && (
+        <div className="fade-in" style={{ display: 'flex', gap: '24px', marginBottom: '32px', flexWrap: 'wrap' }}>
+            <Card style={{ flex: 1, minWidth: '300px', height: '300px', padding: '20px' }}>
+                <h3 style={{ color: 'var(--text-light)', marginBottom: '16px', fontSize: '16px' }}>Status Distribution</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusData}>
+                        <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+                        <YAxis stroke="var(--text-muted)" fontSize={12} />
+                        <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }} />
+                        <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </Card>
+            <Card style={{ flex: 1, minWidth: '300px', height: '300px', padding: '20px' }}>
+                <h3 style={{ color: 'var(--text-light)', marginBottom: '16px', fontSize: '16px' }}>Top Subdomains</h3>
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={subData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" dataKey="value" label>
+                            {subData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }} />
+                        <Legend />
+                    </PieChart>
+                </ResponsiveContainer>
+            </Card>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
         {/* Controls Row */}
@@ -168,6 +269,17 @@ const Dashboard = ({ defaultDomain }) => {
                 }}
             >
                 Start Time {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+
+            <button 
+                onClick={handleExportCSV}
+                style={{
+                    backgroundColor: 'var(--primary)', border: 'none', borderRadius: '12px',
+                    padding: '0 24px', color: 'white', fontWeight: '600', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+            >
+                <FaDownload /> Export CSV
             </button>
         </div>
 
@@ -282,25 +394,17 @@ const Dashboard = ({ defaultDomain }) => {
             onClose={() => setSelectedUser(null)} 
             onUserUpdate={() => {
                 fetchUsers();
-                setSelectedUser(null); // Close modal on update to avoid stale data, or refetch user?
-                // Better: keep modal open but we need to refetch selectedUser. 
-                // For simplicity, close validation or simplistic update. 
-                // User asked "option to promote", usually implies staying in context.
-                // I'll close for now or handle refetch. Let's just close to be safe.
+                setSelectedUser(null); 
             }}
         />
       )}
       
       <style>{`
-        .table-row:hover {
-            background-color: rgba(255, 255, 255, 0.03) !important;
-        }
-        .action-btn:hover {
-            background-color: var(--primary) !important;
-            color: white !important;
-            transform: translateY(-1px);
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .table-row:hover { background-color: rgba(255,255,255,0.03) !important; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );

@@ -19,6 +19,7 @@ const UserSchema = new Schema(
     isProfileDone: { type: Boolean, required: true, default: false },
     isJC: { type: Boolean },
     isSC: { type: Boolean },
+    adminNotes: { type: String, default: "" },
   },
   { timestamps: true }
 );

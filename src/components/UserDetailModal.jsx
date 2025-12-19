@@ -38,6 +38,22 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
     }
   };
 
+  const [notes, setNotes] = useState(user.adminNotes || "");
+
+  const handleSaveNotes = async () => {
+    setUpdating(true);
+    try {
+        await adminService.updateUserStatus(user.regno, { adminNotes: notes });
+        if (onUserUpdate) onUserUpdate();
+        alert("Notes saved successfully!");
+    } catch (error) {
+        console.error("Failed to save notes", error);
+        alert("Failed to save notes");
+    } finally {
+        setUpdating(false);
+    }
+  };
+
   const renderTaskContent = (domain) => {
     const task = getTask(domain);
     const currentLevel = user[domain] !== undefined ? user[domain] : 0;
@@ -76,6 +92,36 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
                      title="Reset to Round 0"
                 >
                     <FaUndo /> Reset
+                </Button>
+            </div>
+        </div>
+
+        {/* Interviewer Notes Section */}
+        <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-light)', marginBottom: '8px' }}>Interviewer Notes</h4>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <textarea 
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add comments about the candidate here..."
+                    style={{ 
+                        flex: 1,
+                        backgroundColor: 'var(--bg-dark)', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '8px', 
+                        padding: '12px', 
+                        color: 'var(--text-main)', 
+                        minHeight: '80px',
+                        outline: 'none',
+                        resize: 'vertical'
+                    }}
+                />
+                <Button 
+                    onClick={handleSaveNotes}
+                    disabled={updating}
+                    style={{ height: 'fit-content' }}
+                >
+                    Save
                 </Button>
             </div>
         </div>

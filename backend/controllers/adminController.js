@@ -161,7 +161,7 @@ export const getManagementUsers = async (req, res) => {
 
 export const updateUserStatus = async (req, res) => {
   try {
-    const { regno, tech, design, management } = req.body;
+    const { regno, tech, design, management, adminNotes } = req.body;
     
     if (!regno) return res.status(400).json({ message: "RegNo required" });
 
@@ -169,6 +169,7 @@ export const updateUserStatus = async (req, res) => {
     if (tech !== undefined) updateFields.tech = tech;
     if (design !== undefined) updateFields.design = design;
     if (management !== undefined) updateFields.management = management;
+    if (adminNotes !== undefined) updateFields.adminNotes = adminNotes;
 
     const user = await User.findOneAndUpdate(
       { regno: regno },
