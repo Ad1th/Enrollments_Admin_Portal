@@ -9,9 +9,27 @@ dotenv.config();
 const app = express();
 const PORT = 5003; // Independent port as planned
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// DB Connection Logic for Serverless
+const connectDB = async () => {
+    if (mongoose.connection.readyState >= 1) return;
+    
+    console.log("Starting new DB connection...");
+    return mongoose.connect(process.env.CONNECT_STRING);
+};
+
+// Middleware to ensure DB is connected before any route logic
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        console.error("Database connection failed:", err);
+        res.status(500).json({ message: "Database connection error" });
+    }
+});
+
+// Debug Log (Masked)
+console.log("Connect String loaded:", process.env.CONNECT_STRING ? "Yes (Masked)" : "No");
 
 // Root Route for Health Check
 app.get("/", (req, res) => {
@@ -19,7 +37,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server is healthy" });
+  res.status(200).json({ status: "ok", message: "Server is healthy", db: mongoose.connection.readyState });
 });
 
 // Auth
@@ -36,7 +54,7 @@ app.use("/auth", authRouter);
 
 // Admin Routes (Protected)
 const adminRouter = express.Router();
-adminRouter.use(verifyAdmin); // Apply middleware to all routes in this router
+adminRouter.use(verifyAdmin);
 
 adminRouter.get("/users/:id", getAllUsers); 
 adminRouter.get("/userstech/:id", getTechUsers);
@@ -45,22 +63,5 @@ adminRouter.get("/usersmanagement/:id", getManagementUsers);
 adminRouter.put("/updatestatus/update", updateUserStatus);
 
 app.use("/admin", adminRouter);
-
-// DB Connection - Only connect and listen if not on Vercel or if called directly
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  mongoose.connect(process.env.CONNECT_STRING)
-    .then(() => {
-      console.log("Connected to MongoDB");
-      app.listen(PORT, () => {
-        console.log(`Backend Server running on port ${PORT}`);
-      });
-    })
-    .catch(err => console.error("DB Connection Error:", err));
-} else {
-  // On Vercel, the connection should ideally be handled at the start of the request if not already connected
-  // However, for simplicity in Express, we can call it here, but it might be better handled in middleware or at the top level
-  mongoose.connect(process.env.CONNECT_STRING)
-    .catch(err => console.error("DB Connection Error:", err));
-}
 
 export default app;
