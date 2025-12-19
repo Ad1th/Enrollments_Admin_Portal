@@ -9,6 +9,10 @@ dotenv.config();
 const app = express();
 const PORT = 5003; // Independent port as planned
 
+// Add Global Middleware (Crucial for CORS and JSON)
+app.use(cors());
+app.use(express.json());
+
 // DB Connection Logic for Serverless
 const connectDB = async () => {
     if (mongoose.connection.readyState >= 1) return;
