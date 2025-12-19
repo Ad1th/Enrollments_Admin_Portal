@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Card, Button } from './ResultComponents';
-import { FaTimes, FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
+import { FaTimes, FaGithub, FaLinkedin, FaGlobe, FaLevelUpAlt, FaUndo, FaBan } from 'react-icons/fa';
+import { adminService } from '../api/services';
 
-const UserDetailModal = ({ user, onClose }) => {
+const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
   const [activeTab, setActiveTab] = useState('profile');
+  const [updating, setUpdating] = useState(false);
 
   if (!user) return null;
 
@@ -16,49 +18,115 @@ const UserDetailModal = ({ user, onClose }) => {
     return tasks && tasks.length > 0 ? tasks[0] : null;
   };
 
+  const handleUpdateStatus = async (domain, action) => {
+    setUpdating(true);
+    try {
+        let newLevel = user[domain] || 0;
+        if (action === 'promote') newLevel += 1;
+        if (action === 'reject') newLevel = -1;
+        if (action === 'reset') newLevel = 0;
+
+        const updates = { [domain]: newLevel };
+        await adminService.updateUserStatus(user.regno, updates);
+        
+        if (onUserUpdate) onUserUpdate();
+    } catch (error) {
+        console.error("Failed to update status", error);
+        alert("Failed to update status");
+    } finally {
+        setUpdating(false);
+    }
+  };
+
   const renderTaskContent = (domain) => {
     const task = getTask(domain);
-    if (!task) {
-        if (!userDomains.includes(domain)) return <p style={{ color: 'var(--text-muted)' }}>User did not apply for {domain}.</p>;
-        return <p style={{ color: 'var(--text-muted)' }}>No task submission found.</p>;
-    }
+    const currentLevel = user[domain] !== undefined ? user[domain] : 0;
+    
+    const content = (
+      <>
+        <div style={{ padding: '16px', backgroundColor: 'rgba(252, 122, 0, 0.05)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Current Level</span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: currentLevel === -1 ? '#ef4444' : 'var(--primary)' }}>
+                    {currentLevel === -1 ? 'REJECTED' : `Round ${currentLevel}`}
+                </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <Button 
+                    variant="primary" 
+                    onClick={() => handleUpdateStatus(domain, 'promote')} 
+                    disabled={updating || currentLevel >= 3 || currentLevel === -1}
+                    title="Promote to Next Round"
+                >
+                    <FaLevelUpAlt /> Promote
+                </Button>
+                <Button 
+                    variant="outline" 
+                    style={{ borderColor: '#ef4444', color: '#ef4444' }}
+                    onClick={() => handleUpdateStatus(domain, 'reject')}
+                    disabled={updating || currentLevel === -1}
+                    title="Reject Candidate"
+                >
+                    <FaBan /> Reject
+                </Button>
+                <Button 
+                     variant="outline"
+                     onClick={() => handleUpdateStatus(domain, 'reset')}
+                     disabled={updating || currentLevel === 0}
+                     title="Reset to Round 0"
+                >
+                    <FaUndo /> Reset
+                </Button>
+            </div>
+        </div>
 
-    const questions = Object.keys(task)
-      .filter(key => key.startsWith('question'))
-      .sort((a, b) => parseInt(a.replace('question', '')) - parseInt(b.replace('question', '')));
+        {!task ? (
+             userDomains.includes(domain) ? 
+             <p style={{ color: 'var(--text-muted)' }}>User did not apply for {domain}.</p> : 
+             <p style={{ color: 'var(--text-muted)' }}>No task submission found.</p>
+        ) : (
+            <>
+                <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '600', color: 'var(--text-light)' }}>Status:</span>
+                    <span className={`badge ${task.isDone ? 'success' : 'warning'}`}>
+                        {task.isDone ? 'Submitted' : 'Draft / In Progress'}
+                    </span>
+                </div>
+                
+                {task.subdomain && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text-light)' }}>Subdomains: </span>
+                        <span style={{ color: 'var(--text-main)' }}>{task.subdomain.join(', ')}</span>
+                    </div>
+                )}
+
+                {Object.keys(task)
+                .filter(key => key.startsWith('question'))
+                .sort((a, b) => parseInt(a.replace('question', '')) - parseInt(b.replace('question', '')))
+                .map((qKey, index) => {
+                    const answer = task[qKey];
+                    const answerText = Array.isArray(answer) ? answer.join('\n') : answer;
+                    if(!answerText) return null;
+
+                    return (
+                        <div key={qKey} style={{ marginBottom: '24px', backgroundColor: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <h4 style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                Question {index + 1}
+                            </h4>
+                            <p style={{ whiteSpace: 'pre-wrap', color: 'var(--text-main)', lineHeight: '1.6', fontSize: '14px' }}>
+                                {answerText}
+                            </p>
+                        </div>
+                    )
+                })}
+            </>
+        )}
+      </>
+    );
 
     return (
       <div style={{ marginTop: '16px' }} className="fade-in">
-        <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontWeight: '600', color: 'var(--text-light)' }}>Status:</span>
-            <span className={`badge ${task.isDone ? 'success' : 'warning'}`}>
-                {task.isDone ? 'Submitted' : 'Draft / In Progress'}
-            </span>
-        </div>
-        
-        {task.subdomain && (
-            <div style={{ marginBottom: '16px' }}>
-                <span style={{ fontWeight: '600', color: 'var(--text-light)' }}>Subdomains: </span>
-                <span style={{ color: 'var(--text-main)' }}>{task.subdomain.join(', ')}</span>
-            </div>
-        )}
-
-        {questions.map((qKey, index) => {
-            const answer = task[qKey];
-            const answerText = Array.isArray(answer) ? answer.join('\n') : answer;
-            if(!answerText) return null;
-
-            return (
-                <div key={qKey} style={{ marginBottom: '24px', backgroundColor: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                        Question {index + 1}
-                    </h4>
-                    <p style={{ whiteSpace: 'pre-wrap', color: 'var(--text-main)', lineHeight: '1.6', fontSize: '14px' }}>
-                        {answerText}
-                    </p>
-                </div>
-            )
-        })}
+        {content}
       </div>
     );
   };
