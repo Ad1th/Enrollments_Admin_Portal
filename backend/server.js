@@ -13,6 +13,15 @@ const PORT = 5003; // Independent port as planned
 app.use(cors());
 app.use(express.json());
 
+// Root Route for Health Check
+app.get("/", (req, res) => {
+  res.send("MFC Recruitment Admin Portal Backend is Running");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is healthy" });
+});
+
 // Auth
 import { verifyAdmin } from "./middleware/auth.js";
 
