@@ -420,6 +420,9 @@ const Dashboard = ({ defaultDomain }) => {
                 </table>
                 </div>
             )}
+        </div>
+      )}
+      
       {selectedUser && (
         <UserDetailModal 
             user={selectedUser} 
@@ -431,7 +434,7 @@ const Dashboard = ({ defaultDomain }) => {
         />
       )}
       
-      {/* <style>{`
+      <style>{`
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .table-row:hover { background-color: rgba(255,255,255,0.03) !important; }
@@ -441,7 +444,7 @@ const Dashboard = ({ defaultDomain }) => {
             transform: translateY(-4px) !important;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
         }
-      `}</style> */}
+      `}</style>
     </div>
   );
 };
