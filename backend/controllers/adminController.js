@@ -38,11 +38,17 @@ export const getAllUsers = async (req, res) => {
       },
       {
         $lookup: {
-          from: "managementtasks",
+          from: "meetdetails",
           localField: "_id",
           foreignField: "user_id",
-          as: "managementTasks",
+          as: "meetDetails",
         },
+      },
+      {
+        $addFields: {
+          meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
+          meetStatus: { $arrayElemAt: ["$meetDetails.status", 0] }
+        }
       },
     ]);
 
@@ -68,6 +74,19 @@ export const getTechUsers = async (req, res) => {
               foreignField: "user_id",
               as: "techTasks",
             },
+          },
+          {
+            $lookup: {
+              from: "meetdetails",
+              localField: "_id",
+              foreignField: "user_id",
+              as: "meetDetails",
+            },
+          },
+          {
+            $addFields: {
+              meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] }
+            }
           }
         ]);
         res.status(200).json({ success: true, data: users });
@@ -87,6 +106,19 @@ export const getDesignUsers = async (req, res) => {
                 foreignField: "user_id",
                 as: "designTasks",
               },
+            },
+            {
+              $lookup: {
+                from: "meetdetails",
+                localField: "_id",
+                foreignField: "user_id",
+                as: "meetDetails",
+              },
+            },
+            {
+                $addFields: {
+                  meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] }
+                }
             }
           ]);
         res.status(200).json({ success: true, data: users });
@@ -106,6 +138,19 @@ export const getManagementUsers = async (req, res) => {
                 foreignField: "user_id",
                 as: "managementTasks",
               },
+            },
+            {
+              $lookup: {
+                from: "meetdetails",
+                localField: "_id",
+                foreignField: "user_id",
+                as: "meetDetails",
+              },
+            },
+            {
+                $addFields: {
+                  meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] }
+                }
             }
           ]);
         res.status(200).json({ success: true, data: users });
