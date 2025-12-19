@@ -37,12 +37,21 @@ adminRouter.put("/updatestatus/update", updateUserStatus);
 
 app.use("/admin", adminRouter);
 
-// DB Connection
-mongoose.connect(process.env.CONNECT_STRING)
-  .then(() => {
-    console.log("Connected to MongoDB");
-    app.listen(PORT, () => {
-      console.log(`Backend Server running on port ${PORT}`);
-    });
-  })
-  .catch(err => console.error("DB Connection Error:", err));
+// DB Connection - Only connect and listen if not on Vercel or if called directly
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  mongoose.connect(process.env.CONNECT_STRING)
+    .then(() => {
+      console.log("Connected to MongoDB");
+      app.listen(PORT, () => {
+        console.log(`Backend Server running on port ${PORT}`);
+      });
+    })
+    .catch(err => console.error("DB Connection Error:", err));
+} else {
+  // On Vercel, the connection should ideally be handled at the start of the request if not already connected
+  // However, for simplicity in Express, we can call it here, but it might be better handled in middleware or at the top level
+  mongoose.connect(process.env.CONNECT_STRING)
+    .catch(err => console.error("DB Connection Error:", err));
+}
+
+export default app;
