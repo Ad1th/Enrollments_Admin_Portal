@@ -43,7 +43,7 @@ app.get("/health", (req, res) => {
 // Auth
 import { verifyAdmin } from "./middleware/auth.js";
 
-// Routes
+// Routes 
 import { login } from "./controllers/authController.js";
 import { getAllUsers, updateUserStatus, getTechUsers, getDesignUsers, getManagementUsers } from "./controllers/adminController.js";
 
