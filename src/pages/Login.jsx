@@ -10,8 +10,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, token } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (token) {
+      navigate('/');
+    }
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,9 +48,9 @@ const Login = () => {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh', 
-      backgroundColor: '#f5f7fb' 
+      backgroundColor: 'var(--bg-dark)' 
     }}>
-      <Card style={{ width: '100%', maxWidth: '400px', padding: '40px' }}>
+      <Card style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ 
             width: '60px', 
@@ -57,10 +63,11 @@ const Login = () => {
             justifyContent: 'center',
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '28px'
+            fontSize: '28px',
+            boxShadow: '0 8px 16px rgba(252, 122, 0, 0.2)'
           }}>M</div>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--gray-900)' }}>Admin Portal</h2>
-          <p style={{ color: 'var(--gray-600)' }}>Sign in to manage recruitments</p>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-main)' }}>Admin Portal</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Sign in to manage recruitments</p>
         </div>
 
         {error && (
@@ -78,17 +85,17 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--gray-700)' }}>Email</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-light)' }}>Email</label>
             <Input 
               type="email" 
-              placeholder="admin@example.com" 
+              placeholder="admin@mfc.com" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)}
               required 
             />
           </div>
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--gray-700)' }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-light)' }}>Password</label>
             <Input 
               type="password" 
               placeholder="••••••••" 

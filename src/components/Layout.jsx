@@ -79,26 +79,39 @@ const Sidebar = () => {
 
       <button 
         onClick={handleLogout}
+        className="logout-button"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
           padding: '12px 16px',
           borderRadius: '8px',
-          background: 'none',
-          border: 'none',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
           color: 'var(--text-muted)',
           cursor: 'pointer',
-          fontWeight: 500,
+          fontWeight: '600',
           marginTop: 'auto',
-          transition: 'color 0.2s'
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          width: '100%',
+          justifyContent: 'flex-start'
         }}
-        onMouseEnter={(e) => e.target.style.color = 'var(--primary)'}
-        onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
       >
-        <FaSignOutAlt />
-        Logout
+        <FaSignOutAlt style={{ transition: 'transform 0.3s' }} className="logout-icon" />
+        <span>Logout</span>
       </button>
+
+      <style>{`
+        .logout-button:hover {
+          background-color: rgba(252, 122, 0, 0.1) !important;
+          color: var(--primary) !important;
+          border-color: rgba(252, 122, 0, 0.2) !important;
+          transform: translateX(4px);
+        }
+        .logout-button:hover .logout-icon {
+          transform: translateX(2px);
+        }
+      `}</style>
     </div>
   );
 };
