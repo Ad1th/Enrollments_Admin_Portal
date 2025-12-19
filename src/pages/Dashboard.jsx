@@ -9,9 +9,26 @@ import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, Resp
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const SUBDOMAINS = {
-    tech: ['Frontend', 'Backend', 'Cyber Security', 'App Dev', 'AI/ML', 'Competitive Programming'],
-    design: ['Graphic Design', 'UI/UX', '3D Modelling', 'Video Editing / Photography'],
-    management: ['Outreach', 'General Ops', 'Publicity', 'Editorial']
+    tech: [
+        { label: 'Frontend', value: 'frontend' },
+        { label: 'Backend', value: 'backend' },
+        { label: 'Cyber Security', value: 'cyber-sec' },
+        { label: 'App Dev', value: 'app' },
+        { label: 'AI/ML', value: 'ml' },
+        { label: 'CP', value: 'cp' }
+    ],
+    design: [
+        { label: 'Graphic Design', value: 'graphicdesign' },
+        { label: 'UI/UX', value: 'ui/ux' },
+        { label: '3D Modelling', value: '3d' },
+        { label: 'Video Editing', value: 'videoediting/photography' }
+    ],
+    management: [
+        { label: 'Outreach', value: 'outreach' },
+        { label: 'General Ops', value: 'generaloperations' },
+        { label: 'Publicity', value: 'publicity' },
+        { label: 'Editorial', value: 'editorial' }
+    ]
 };
 
 const Dashboard = ({ defaultDomain }) => {
@@ -90,13 +107,29 @@ const Dashboard = ({ defaultDomain }) => {
     let matchesSubdomain = true;
     if (selectedSubdomains.length > 0) {
         // Collect all subdomains for user across all tasks
+        // Subdomains are stored as strings (sometimes comma-separated) in the array
         const userSubs = [];
-        if (user.techTasks && user.techTasks[0] && user.techTasks[0].subdomain) userSubs.push(...user.techTasks[0].subdomain);
-        if (user.designTasks && user.designTasks[0] && user.designTasks[0].subdomain) userSubs.push(...user.designTasks[0].subdomain);
-        if (user.managementTasks && user.managementTasks[0] && user.managementTasks[0].subdomain) userSubs.push(...user.managementTasks[0].subdomain);
+        
+        const processSubdomainString = (subStr) => {
+            if (!subStr) return [];
+            // Handle if it's already an array or a comma-separated string
+            if (Array.isArray(subStr)) {
+                return subStr.flatMap(s => s.split(',').map(item => item.trim().toLowerCase()));
+            }
+            return subStr.split(',').map(item => item.trim().toLowerCase());
+        };
+
+        if (user.techTasks && user.techTasks[0] && user.techTasks[0].subdomain) {
+            userSubs.push(...processSubdomainString(user.techTasks[0].subdomain));
+        }
+        if (user.designTasks && user.designTasks[0] && user.designTasks[0].subdomain) {
+            userSubs.push(...processSubdomainString(user.designTasks[0].subdomain));
+        }
+        if (user.managementTasks && user.managementTasks[0] && user.managementTasks[0].subdomain) {
+            userSubs.push(...processSubdomainString(user.managementTasks[0].subdomain));
+        }
         
         // Check if user matches ANY selected subdomain (OR logic)
-        // If user wants separate categories, they should select one at a time, or we can assume OR for multi-select
         matchesSubdomain = userSubs.some(s => selectedSubdomains.includes(s));
     }
 
@@ -183,11 +216,11 @@ const Dashboard = ({ defaultDomain }) => {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                 {SUBDOMAINS[domainKey].map(sub => {
-                    const isSelected = selectedSubdomains.includes(sub);
+                    const isSelected = selectedSubdomains.includes(sub.value);
                     return (
                         <div 
-                            key={sub}
-                            onClick={() => toggleSubdomain(sub)}
+                            key={sub.value}
+                            onClick={() => toggleSubdomain(sub.value)}
                             style={{
                                 backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-card)',
                                 color: isSelected ? 'white' : 'var(--text-main)',
@@ -203,7 +236,7 @@ const Dashboard = ({ defaultDomain }) => {
                              }}
                              className="subdomain-card"
                         >
-                            {sub}
+                            {sub.label}
                         </div>
                     )
                 })}
