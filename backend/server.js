@@ -13,6 +13,9 @@ const PORT = 5003; // Independent port as planned
 app.use(cors());
 app.use(express.json());
 
+// Auth
+import { verifyAdmin } from "./middleware/auth.js";
+
 // Routes
 import { login } from "./controllers/authController.js";
 import { getAllUsers, updateUserStatus, getTechUsers, getDesignUsers, getManagementUsers } from "./controllers/adminController.js";
@@ -22,10 +25,11 @@ const authRouter = express.Router();
 authRouter.post("/login", login);
 app.use("/auth", authRouter);
 
-// Admin Routes
+// Admin Routes (Protected)
 const adminRouter = express.Router();
-// Simplified routing to match what frontend expects
-adminRouter.get("/users/:id", getAllUsers); // :id param ignored for now, just auth check logic typically
+adminRouter.use(verifyAdmin); // Apply middleware to all routes in this router
+
+adminRouter.get("/users/:id", getAllUsers); 
 adminRouter.get("/userstech/:id", getTechUsers);
 adminRouter.get("/usersdesign/:id", getDesignUsers);
 adminRouter.get("/usersmanagement/:id", getManagementUsers);

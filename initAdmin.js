@@ -19,8 +19,8 @@ const createAdmin = async () => {
     const UserSchema = new mongoose.Schema({}, { strict: false });
     const User = mongoose.model("User", UserSchema);
 
-    const email = "admin@mfc.com";
-    const password = "password123";
+    const email = process.env.ADMIN_PORTAL_USER;
+    const password = process.env.ADMIN_PORTAL_PASSWORD;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
