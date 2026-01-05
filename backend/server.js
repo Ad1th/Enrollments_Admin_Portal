@@ -15,25 +15,28 @@ app.use(express.json());
 
 // DB Connection Logic for Serverless
 const connectDB = async () => {
-    if (mongoose.connection.readyState >= 1) return;
-    
-    console.log("Starting new DB connection...");
-    return mongoose.connect(process.env.CONNECT_STRING);
+  if (mongoose.connection.readyState >= 1) return;
+
+  console.log("Starting new DB connection...");
+  return mongoose.connect(process.env.CONNECT_STRING);
 };
 
 // Middleware to ensure DB is connected before any route logic
 app.use(async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (err) {
-        console.error("Database connection failed:", err);
-        res.status(500).json({ message: "Database connection error" });
-    }
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection failed:", err);
+    res.status(500).json({ message: "Database connection error" });
+  }
 });
 
 // Debug Log (Masked)
-console.log("Connect String loaded:", process.env.CONNECT_STRING ? "Yes (Masked)" : "No");
+console.log(
+  "Connect String loaded:",
+  process.env.CONNECT_STRING ? "Yes (Masked)" : "No"
+);
 
 // Root Route for Health Check
 app.get("/", (req, res) => {
@@ -41,18 +44,30 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server is healthy", db: mongoose.connection.readyState });
+  res
+    .status(200)
+    .json({
+      status: "ok",
+      message: "Server is healthy",
+      db: mongoose.connection.readyState,
+    });
 });
 
 // Auth
 import { verifyAdmin } from "./middleware/auth.js";
+import authRouter from "./routes/auth.js";
 
-// Routes 
+// Routes
 import { login } from "./controllers/authController.js";
-import { getAllUsers, updateUserStatus, getTechUsers, getDesignUsers, getManagementUsers } from "./controllers/adminController.js";
+import {
+  getAllUsers,
+  updateUserStatus,
+  getTechUsers,
+  getDesignUsers,
+  getManagementUsers,
+} from "./controllers/adminController.js";
 
 // Auth Routes
-const authRouter = express.Router();
 authRouter.post("/login", login);
 app.use("/auth", authRouter);
 
@@ -60,7 +75,7 @@ app.use("/auth", authRouter);
 const adminRouter = express.Router();
 adminRouter.use(verifyAdmin);
 
-adminRouter.get("/users/:id", getAllUsers); 
+adminRouter.get("/users/:id", getAllUsers);
 adminRouter.get("/userstech/:id", getTechUsers);
 adminRouter.get("/usersdesign/:id", getDesignUsers);
 adminRouter.get("/usersmanagement/:id", getManagementUsers);
