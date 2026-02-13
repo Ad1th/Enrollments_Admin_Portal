@@ -54,12 +54,12 @@ const SUBDOMAINS = {
 import { useAuth } from "../context/AuthContext";
 
 const Dashboard = ({ defaultDomain }) => {
-  const { token, loading: authLoading } = useAuth();
+  const { token, loading: authLoading, logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [showAnalytics, setShowAnalytics] = useState(true); // Default to true
+  const [showAnalytics, setShowAnalytics] = useState(false); // Hide analytics by default
   const [showUserList, setShowUserList] = useState(false); // Default to false
 
   // New States for Sorting/Filtering
@@ -316,12 +316,15 @@ const Dashboard = ({ defaultDomain }) => {
       }
 
       // Submission/Meeting/Rejected
-      const hasSubmitted = [
+      // Count all submitted tasks, not just one per user
+      const allTasks = [
         ...(u.techTasks || []),
         ...(u.designTasks || []),
         ...(u.managementTasks || []),
-      ].some((task) => task && task.submitted);
-      if (hasSubmitted) totalSubmitted++;
+      ];
+      totalSubmitted += allTasks.filter(
+        (task) => task && task.submitted,
+      ).length;
       if (u.meetingTime) totalScheduled++;
       if (level === -1) totalRejected++;
     });
@@ -462,13 +465,32 @@ const Dashboard = ({ defaultDomain }) => {
           </h1>
           <p style={{ color: "var(--text-muted)" }}>Analytics & Management</p>
         </div>
-        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
           <Button
             variant="outline"
             onClick={() => setShowAnalytics(!showAnalytics)}
             title="Toggle Analytics"
+            style={{
+              fontSize: 22,
+              padding: "18px 32px",
+              fontWeight: 700,
+              borderWidth: 2,
+            }}
           >
-            <FaChartPie /> {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+            <FaChartPie style={{ fontSize: 28, marginRight: 10 }} />{" "}
+            {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={logout}
+            style={{
+              fontWeight: 600,
+              color: "#ef4444",
+              borderColor: "#ef4444",
+            }}
+            title="Logout"
+          >
+            Logout
           </Button>
           <div
             className="status-card"
