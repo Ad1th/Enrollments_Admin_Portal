@@ -232,8 +232,9 @@ const Dashboard = ({ defaultDomain }) => {
   ]);
 
   // Export to CSV (only current page)
+  // Export to CSV (all filtered users)
   const handleExportCSV = () => {
-    if (paginatedUsers.length === 0) return;
+    if (processedUsers.length === 0) return;
 
     const headers = [
       "Name",
@@ -245,7 +246,7 @@ const Dashboard = ({ defaultDomain }) => {
       "Management Status",
       "Meeting Time",
     ];
-    const rows = paginatedUsers.map((u) => [
+    const rows = processedUsers.map((u) => [
       u.username,
       u.regno,
       u.mobile,
