@@ -187,12 +187,12 @@ const Dashboard = ({ defaultDomain }) => {
       // Submitted Filter
       let matchesSubmitted = true;
       if (showSubmittedOnly) {
-        // Check if user has at least one submitted task
+        // Check if user has at least one submitted task (isDone === true)
         const hasSubmitted = [
           ...(user.techTasks || []),
           ...(user.designTasks || []),
           ...(user.managementTasks || []),
-        ].some((task) => task && task.submitted);
+        ].some((task) => task && task.isDone === true);
         matchesSubmitted = hasSubmitted;
       }
 
