@@ -275,9 +275,9 @@ const Dashboard = ({ defaultDomain }) => {
     document.body.removeChild(link);
   };
 
-  // Analytics Data Preparation
+  // Enhanced Analytics Data Preparation
   const getAnalyticsData = () => {
-    // Status Distribution
+    // Status Distribution (Funnel)
     const statusCounts = {
       Rejected: 0,
       "Round 0": 0,
@@ -285,13 +285,45 @@ const Dashboard = ({ defaultDomain }) => {
       "Round 2": 0,
       "Round 3": 0,
     };
+    // Gender Distribution
+    const genderCounts = { Male: 0, Female: 0, Other: 0, Unspecified: 0 };
+    // Application Trend (by date)
+    const dateCounts = {};
+    // Submission stats
+    let totalSubmitted = 0,
+      totalScheduled = 0,
+      totalRejected = 0;
+
     users.forEach((u) => {
+      // Status
       let level = 0;
       if (defaultDomain) level = u[defaultDomain];
-      else level = Math.max(u.tech, u.design, u.management); // Aggregate max for overview
-
+      else level = Math.max(u.tech, u.design, u.management);
       if (level === -1) statusCounts["Rejected"]++;
       else if (level >= 0 && level <= 3) statusCounts[`Round ${level}`]++;
+
+      // Gender
+      const g = (u.gender || "").toLowerCase();
+      if (g === "male") genderCounts.Male++;
+      else if (g === "female") genderCounts.Female++;
+      else if (g && g !== "unspecified") genderCounts.Other++;
+      else genderCounts.Unspecified++;
+
+      // Application Trend
+      if (u.createdAt) {
+        const d = new Date(u.createdAt).toISOString().split("T")[0];
+        dateCounts[d] = (dateCounts[d] || 0) + 1;
+      }
+
+      // Submission/Meeting/Rejected
+      const hasSubmitted = [
+        ...(u.techTasks || []),
+        ...(u.designTasks || []),
+        ...(u.managementTasks || []),
+      ].some((task) => task && task.submitted);
+      if (hasSubmitted) totalSubmitted++;
+      if (u.meetingTime) totalScheduled++;
+      if (level === -1) totalRejected++;
     });
 
     const statusData = Object.keys(statusCounts).map((k) => ({
@@ -302,7 +334,6 @@ const Dashboard = ({ defaultDomain }) => {
     // Subdomain Distribution
     const subCounts = {};
     users.forEach((u) => {
-      // Aggregate all tasks
       const tasks = [
         ...(u.techTasks || []),
         ...(u.designTasks || []),
@@ -319,12 +350,32 @@ const Dashboard = ({ defaultDomain }) => {
     const subData = Object.keys(subCounts)
       .map((k) => ({ name: k, value: subCounts[k] }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5); // Top 5
+      .slice(0, 5);
 
-    return { statusData, subData };
+    // Gender Pie
+    const genderData = Object.keys(genderCounts).map((k) => ({
+      name: k,
+      value: genderCounts[k],
+    }));
+
+    // Application Trend (sorted by date)
+    const trendData = Object.keys(dateCounts)
+      .sort()
+      .map((d) => ({ date: d, count: dateCounts[d] }));
+
+    // Summary
+    const summary = {
+      total: users.length,
+      totalSubmitted,
+      totalScheduled,
+      totalRejected,
+    };
+
+    return { statusData, subData, genderData, trendData, summary };
   };
 
-  const { statusData, subData } = getAnalyticsData();
+  const { statusData, subData, genderData, trendData, summary } =
+    getAnalyticsData();
 
   // Helper to render Subdomain Grid
   const renderSubdomainGrid = (domainKey) => {
@@ -457,28 +508,64 @@ const Dashboard = ({ defaultDomain }) => {
           className="fade-in"
           style={{
             display: "flex",
+            flexWrap: "wrap",
             gap: "24px",
             marginBottom: "40px",
-            flexWrap: "wrap",
           }}
         >
+          {/* Summary Cards */}
           <Card
-            style={{
-              flex: 1,
-              minWidth: "350px",
-              height: "350px",
-              padding: "24px",
-            }}
+            style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
           >
+            <h3 style={{ color: "var(--primary)", fontSize: 32, margin: 0 }}>
+              {summary.total}
+            </h3>
+            <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
+              Total Applicants
+            </div>
+          </Card>
+          <Card
+            style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
+          >
+            <h3 style={{ color: "#22c55e", fontSize: 32, margin: 0 }}>
+              {summary.totalSubmitted}
+            </h3>
+            <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
+              Submitted
+            </div>
+          </Card>
+          <Card
+            style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
+          >
+            <h3 style={{ color: "#f59e42", fontSize: 32, margin: 0 }}>
+              {summary.totalScheduled}
+            </h3>
+            <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
+              Scheduled
+            </div>
+          </Card>
+          <Card
+            style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
+          >
+            <h3 style={{ color: "#ef4444", fontSize: 32, margin: 0 }}>
+              {summary.totalRejected}
+            </h3>
+            <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
+              Rejected
+            </div>
+          </Card>
+
+          {/* Status Funnel */}
+          <Card style={{ flex: 2, minWidth: 350, height: 350, padding: 24 }}>
             <h3
               style={{
                 color: "var(--text-light)",
-                marginBottom: "20px",
-                fontSize: "16px",
+                marginBottom: 20,
+                fontSize: 16,
                 fontWeight: "bold",
               }}
             >
-              Status Distribution
+              Round Funnel
             </h3>
             <ResponsiveContainer
               width="100%"
@@ -507,19 +594,96 @@ const Dashboard = ({ defaultDomain }) => {
               </BarChart>
             </ResponsiveContainer>
           </Card>
-          <Card
-            style={{
-              flex: 1,
-              minWidth: "350px",
-              height: "350px",
-              padding: "24px",
-            }}
-          >
+
+          {/* Gender Distribution */}
+          <Card style={{ flex: 1, minWidth: 300, height: 350, padding: 24 }}>
             <h3
               style={{
                 color: "var(--text-light)",
-                marginBottom: "20px",
-                fontSize: "16px",
+                marginBottom: 20,
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              Gender Distribution
+            </h3>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={300}
+              minHeight={300}
+            >
+              <PieChart>
+                <Pie
+                  data={genderData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label
+                >
+                  {genderData.map((entry, index) => (
+                    <Cell
+                      key={`cell-gender-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border-color)",
+                  }}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Application Trend */}
+          <Card style={{ flex: 2, minWidth: 350, height: 350, padding: 24 }}>
+            <h3
+              style={{
+                color: "var(--text-light)",
+                marginBottom: 20,
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              Application Trend
+            </h3>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={350}
+              minHeight={350}
+            >
+              <BarChart data={trendData}>
+                <XAxis
+                  dataKey="date"
+                  stroke="var(--text-muted)"
+                  fontSize={12}
+                />
+                <YAxis stroke="var(--text-muted)" fontSize={12} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border-color)",
+                  }}
+                />
+                <Bar dataKey="count" fill="#00C49F" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Top Subdomains */}
+          <Card style={{ flex: 1, minWidth: 300, height: 350, padding: 24 }}>
+            <h3
+              style={{
+                color: "var(--text-light)",
+                marginBottom: 20,
+                fontSize: 16,
                 fontWeight: "bold",
               }}
             >
@@ -528,22 +692,22 @@ const Dashboard = ({ defaultDomain }) => {
             <ResponsiveContainer
               width="100%"
               height="100%"
-              minWidth={350}
-              minHeight={350}
+              minWidth={300}
+              minHeight={300}
             >
               <PieChart>
                 <Pie
                   data={subData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"
                   label
                 >
                   {subData.map((entry, index) => (
                     <Cell
-                      key={`cell-${index}`}
+                      key={`cell-sub-${index}`}
                       fill={COLORS[index % COLORS.length]}
                     />
                   ))}
