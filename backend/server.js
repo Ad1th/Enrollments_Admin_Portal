@@ -35,7 +35,7 @@ app.use(async (req, res, next) => {
 // Debug Log (Masked)
 console.log(
   "Connect String loaded:",
-  process.env.CONNECT_STRING ? "Yes (Masked)" : "No"
+  process.env.CONNECT_STRING ? "Yes (Masked)" : "No",
 );
 
 // Root Route for Health Check
@@ -44,13 +44,11 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res
-    .status(200)
-    .json({
-      status: "ok",
-      message: "Server is healthy",
-      db: mongoose.connection.readyState,
-    });
+  res.status(200).json({
+    status: "ok",
+    message: "Server is healthy",
+    db: mongoose.connection.readyState,
+  });
 });
 
 // Auth
@@ -65,6 +63,7 @@ import {
   getTechUsers,
   getDesignUsers,
   getManagementUsers,
+  getSubdomainSubmissionStatus,
 } from "./controllers/adminController.js";
 
 // Auth Routes
@@ -80,6 +79,7 @@ adminRouter.get("/userstech/:id", getTechUsers);
 adminRouter.get("/usersdesign/:id", getDesignUsers);
 adminRouter.get("/usersmanagement/:id", getManagementUsers);
 adminRouter.put("/updatestatus/update", updateUserStatus);
+adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 
 app.use("/admin", adminRouter);
 
