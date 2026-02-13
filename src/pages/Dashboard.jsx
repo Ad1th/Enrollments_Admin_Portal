@@ -595,52 +595,6 @@ const Dashboard = ({ defaultDomain }) => {
             </ResponsiveContainer>
           </Card>
 
-          {/* Gender Distribution */}
-          <Card style={{ flex: 1, minWidth: 300, height: 350, padding: 24 }}>
-            <h3
-              style={{
-                color: "var(--text-light)",
-                marginBottom: 20,
-                fontSize: 16,
-                fontWeight: "bold",
-              }}
-            >
-              Gender Distribution
-            </h3>
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={300}
-              minHeight={300}
-            >
-              <PieChart>
-                <Pie
-                  data={genderData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label
-                >
-                  {genderData.map((entry, index) => (
-                    <Cell
-                      key={`cell-gender-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--bg-card)",
-                    borderColor: "var(--border-color)",
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-
           {/* Application Trend */}
           <Card style={{ flex: 2, minWidth: 350, height: 350, padding: 24 }}>
             <h3
@@ -677,7 +631,7 @@ const Dashboard = ({ defaultDomain }) => {
             </ResponsiveContainer>
           </Card>
 
-          {/* Top Subdomains */}
+          {/* Top Subdomains (improved) */}
           <Card style={{ flex: 1, minWidth: 300, height: 350, padding: 24 }}>
             <h3
               style={{
@@ -700,15 +654,19 @@ const Dashboard = ({ defaultDomain }) => {
                   data={subData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={90}
-                  fill="#8884d8"
+                  outerRadius={100}
                   dataKey="value"
-                  label
+                  label={({ name, percent }) =>
+                    `${name} (${(percent * 100).toFixed(1)}%)`
+                  }
                 >
                   {subData.map((entry, index) => (
                     <Cell
                       key={`cell-sub-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={
+                        COLORS[index % COLORS.length] ||
+                        `hsl(${index * 72}, 70%, 60%)`
+                      }
                     />
                   ))}
                 </Pie>
