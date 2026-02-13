@@ -47,7 +47,7 @@ const SUBDOMAINS = {
     { label: "Outreach", value: "outreach" },
     { label: "General Ops", value: "generaloperations" },
     { label: "Publicity", value: "publicity" },
-    { label: "Editorial", value: "editorial" },
+    { label: "Events", value: "editorial" },
   ],
 };
 

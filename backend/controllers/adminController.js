@@ -54,8 +54,9 @@ export const getSubdomainSubmissionStatus = async (req, res) => {
     ];
 
     // Use the utility to segregate
-    const techResult = segregateBySubdomain(techtasks, techKeys);
-    const designResult = segregateBySubdomain(designtasks, designKeys);
+    // Use the utility to segregate
+    const techResult = segregateBySubdomain(techtasks, techKeys, "tech");
+    const designResult = segregateBySubdomain(designtasks, designKeys, "design");
     const managementResult = segregateBySubdomain(
       managementtasks,
       managementKeys,
@@ -77,7 +78,7 @@ import User from "../models/User.js";
 
 const inferSubdomain = (task, type = "management") => {
   if (type === "management") {
-    // Editorial / Events check (Question 17 is unique to Editorial/Events)
+    // Events check (Question 17) - Mapped to 'editorial' for consistency
     if (hasAnswer(task, "question17")) return ["editorial"];
 
     // Publicity check (Questions 12-16)
@@ -100,7 +101,7 @@ const inferSubdomain = (task, type = "management") => {
     ];
     if (outreachQs.some((q) => hasAnswer(task, q))) return ["outreach"];
 
-    // General Operations check (Questions 2-6) - Fallback if no specific subdomain found
+    // General Operations check (Questions 2-6)
     const genOpsQs = [
       "question2",
       "question3",
@@ -109,15 +110,63 @@ const inferSubdomain = (task, type = "management") => {
       "question6",
     ];
     if (genOpsQs.some((q) => hasAnswer(task, q))) return ["generaloperations"];
+  } else if (type === "tech") {
+     // CP (Question 4 - XOR Linked List) - prioritzed based on frequency
+     if (hasAnswer(task, "question4")) return ["cp"];
+
+     // Backend (Question 3 - Compiled vs Interpreted)
+     if (hasAnswer(task, "question3")) return ["backend"];
+
+     // Frontend (Question 2 - NPM)
+     if (hasAnswer(task, "question2")) return ["frontend"];
+
+     // App / Cyber Security (Question 5 - Steganography)
+     // Mapping to 'app' primarily, but could be cyber-sec. Since we need a decision, mapping to 'app'
+     if (hasAnswer(task, "question5")) return ["app"];
+  } else if (type === "design") {
+      // Video Editing (Questions 12, 13)
+      if (hasAnswer(task, "question12") || hasAnswer(task, "question13")) return ["videoediting/photography"];
+      
+      // UI/UX (Questions 10, 11)
+      if (hasAnswer(task, "question10") || hasAnswer(task, "question11")) return ["ui/ux"];
+
+      // Graphic Design (Question 9)
+      if (hasAnswer(task, "question9")) return ["graphicdesign"];
   }
   return [];
 };
 
 const hasAnswer = (task, key) => {
-  return (
-    Array.isArray(task[key]) &&
-    task[key].some((ans) => typeof ans === "string" && ans.trim().length > 0)
-  );
+  if (!Array.isArray(task[key])) return false;
+  
+  return task[key].some(ans => {
+      if (typeof ans !== 'string') return false;
+      const trimmed = ans.trim();
+      if (trimmed.length === 0) return false;
+      
+      // Filter out common placeholders
+      const placeholders = [
+          "question1", "question2", "question3", "question4", "question5",
+          "question6", "question7", "question8", "question9", "question10",
+          "question11", "question12", "question13", "question14", "question15",
+          "question16", "question17",
+          "What is npm, and how does a developer use it?",
+          "What is the difference between a compiled language and an interpreted language?",
+          "Research XOR Linked Lists and explain how they work in your own words.",
+          "Suppose you want to hide some data in a multimedia file. What would be your approach?",
+          "Imagine you're editing a piece of content and discover a factual error.",
+          "BrightHive, a fast-growing AI startup, needs a modern logo."
+      ];
+      
+      // Check if answer is just the placeholder question text
+      if (placeholders.some(p => trimmed.startsWith(p) || trimmed === p)) {
+           // Some users might leave the question and add answer. logic: if length is significantly longer than placeholder?
+           // For safety: if exact match or very close, ignore.
+           if (trimmed.length < 50 && placeholders.includes(trimmed)) return false;
+       }
+       
+      return true;
+  });
 };
 
 function segregateBySubdomain(tasks, questionKeys, type = "management") {
@@ -134,7 +183,7 @@ function segregateBySubdomain(tasks, questionKeys, type = "management") {
       subdomains = subdomains.map((s) => s.toLowerCase());
     }
 
-    // Fix editorial/events mismatch if present in DB
+    // Fix events naming (using 'editorial' consistently)
     subdomains = subdomains.map((s) => (s === "events" ? "editorial" : s));
 
     const submitted = hasSubmission(task, questionKeys);
@@ -311,14 +360,26 @@ export const getAllUsers = async (req, res) => {
       },
     ]);
 
-    // Post-processing to infer subdomains for Management Tasks
+    // Post-processing to infer subdomains for All Tasks
     users.forEach((user) => {
       // Tech
       if (user.techTasks && user.techTasks.length > 0) {
         user.techTasks.forEach((task) => {
-            // Logic for tech if needed, but mainly management requested
+             if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
+                task.subdomain = inferSubdomain(task, "tech");
+             }
         });
       }
+      
+      // Design
+      if (user.designTasks && user.designTasks.length > 0) {
+        user.designTasks.forEach((task) => {
+             if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
+                task.subdomain = inferSubdomain(task, "design");
+             }
+        });
+      }
+
       // Management
       if (user.managementTasks && user.managementTasks.length > 0) {
         user.managementTasks.forEach((task) => {
@@ -328,7 +389,7 @@ export const getAllUsers = async (req, res) => {
           ) {
             task.subdomain = inferSubdomain(task, "management");
           } else {
-            // Ensure events -> editorial normalization exists here too
+             // Ensure legacy mixed naming is normalized to 'editorial'
              let sub = task.subdomain;
              if (typeof sub === 'string') sub = sub.split(',').map(s=>s.trim());
              if (Array.isArray(sub)) {
@@ -376,7 +437,13 @@ export const getTechUsers = async (req, res) => {
       },
     ]);
     users.forEach((user) => {
-        // Tech logic if needed
+        if (user.techTasks) {
+            user.techTasks.forEach(task => {
+                if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
+                    task.subdomain = inferSubdomain(task, "tech");
+                }
+            })
+        }
     });
     res.status(200).json({ success: true, data: users });
   } catch (e) {
@@ -411,7 +478,13 @@ export const getDesignUsers = async (req, res) => {
       },
     ]);
     users.forEach((user) => {
-        // Design logic if needed
+        if (user.designTasks) {
+            user.designTasks.forEach(task => {
+                if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
+                    task.subdomain = inferSubdomain(task, "design");
+                }
+            })
+        }
     });
     res.status(200).json({ success: true, data: users });
   } catch (e) {
