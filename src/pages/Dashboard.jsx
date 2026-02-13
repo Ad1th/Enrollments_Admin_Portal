@@ -1127,8 +1127,14 @@ const Dashboard = ({ defaultDomain }) => {
         <UserDetailModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onUserUpdate={() => {
-            fetchUsers();
+          onUserUpdate={(updatedUser) => {
+            if (updatedUser && updatedUser._id) {
+              setUsers((prevUsers) =>
+                prevUsers.map((u) =>
+                  u._id === updatedUser._id ? { ...u, ...updatedUser } : u,
+                ),
+              );
+            }
             setSelectedUser(null);
           }}
         />
