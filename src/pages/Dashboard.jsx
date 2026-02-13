@@ -323,7 +323,7 @@ const Dashboard = ({ defaultDomain }) => {
         ...(u.managementTasks || []),
       ];
       totalSubmitted += allTasks.filter(
-        (task) => task && task.submitted,
+        (task) => task && task.isDone === true,
       ).length;
       if (u.meetingTime) totalScheduled++;
       if (level === -1) totalRejected++;
