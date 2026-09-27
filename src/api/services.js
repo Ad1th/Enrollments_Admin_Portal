@@ -53,6 +53,21 @@ export const adminService = {
     return response.data;
   },
 
+  getHistory: async (userId) => {
+    const response = await api.get(`/admin/history/${userId}`);
+    return response.data;
+  },
+
+  getQuestions: async () => {
+    const response = await api.get(`/admin/questions`);
+    return response.data;
+  },
+
+  updateQuestion: async (key, fields) => {
+    const response = await api.patch(`/admin/questions/${key}`, fields);
+    return response.data;
+  },
+
   updateUserStatus: async (regno, statusUpdates) => {
     // Backend: /admin/updatestatus/:id (id in param seems unused in controller, but req.body has regno)
     const response = await api.put(`/admin/updatestatus/update`, {
