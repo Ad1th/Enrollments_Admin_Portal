@@ -70,6 +70,7 @@ import {
 } from "./controllers/adminController.js";
 import { listQuestions, updateQuestion } from "./controllers/questionController.js";
 import { runAiReview, listAiReviews } from "./controllers/aiReviewController.js";
+import { getSimilarity } from "./controllers/similarityController.js";
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -98,6 +99,7 @@ adminRouter.get("/questions", listQuestions);
 adminRouter.patch("/questions/:key", updateQuestion);
 adminRouter.post("/ai-review", runAiReview);
 adminRouter.get("/ai-review", listAiReviews);
+adminRouter.get("/similarity", getSimilarity);
 
 app.use("/admin", adminRouter);
 
