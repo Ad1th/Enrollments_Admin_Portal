@@ -40,14 +40,13 @@ const SUBDOMAINS = {
   design: [
     { label: "Graphic Design", value: "graphicdesign" },
     { label: "UI/UX", value: "ui/ux" },
-    { label: "3D Modelling", value: "3d" },
     { label: "Video Editing", value: "videoediting/photography" },
   ],
   management: [
     { label: "Outreach", value: "outreach" },
     { label: "General Ops", value: "generaloperations" },
     { label: "Publicity", value: "publicity" },
-    { label: "Events", value: "editorial" },
+    { label: "Events", value: "events" },
   ],
 };
 
