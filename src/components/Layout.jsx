@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import CommandPalette from './CommandPalette';
 import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt } from 'react-icons/fa';
 
 const Sidebar = () => {
@@ -120,6 +121,7 @@ const Layout = () => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
+      <CommandPalette />
       <div style={{ marginLeft: '260px', flex: 1, padding: '32px', minHeight: '100vh', backgroundColor: 'var(--bg-dark)' }}>
         <div className="fade-in">
             <Outlet />
