@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Button } from "./ResultComponents";
 import {
   FaTimes,
@@ -10,10 +10,23 @@ import {
   FaBan,
 } from "react-icons/fa";
 import { adminService } from "../api/services";
+import { useQuestions } from "../hooks/useQuestions";
+import AnswerList from "./AnswerList";
+import StatusHistory, { roundLabel } from "./StatusHistory";
 
 const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
   const [activeTab, setActiveTab] = useState("profile");
   const [updating, setUpdating] = useState(false);
+  const [history, setHistory] = useState([]);
+  const questions = useQuestions();
+
+  useEffect(() => {
+    if (!user?._id) return;
+    adminService
+      .getHistory(user._id)
+      .then((res) => setHistory(res.data || []))
+      .catch(() => setHistory([]));
+  }, [user?._id]);
 
   if (!user) return null;
 
@@ -36,7 +49,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
 
       const updates = { [domain]: newLevel };
       const result = await adminService.updateUserStatus(user.regno, updates);
-      // Assume result.data contains the updated user
+      if (result.events?.length) setHistory((h) => [...result.events.reverse(), ...h]);
       if (onUserUpdate) onUserUpdate({ ...user, ...updates });
     } catch (error) {
       console.error("Failed to update status", error);
@@ -101,7 +114,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
                 color: currentLevel === -1 ? "#ef4444" : "var(--primary)",
               }}
             >
-              {currentLevel === -1 ? "REJECTED" : `Round ${currentLevel}`}
+              {roundLabel(currentLevel).toUpperCase()}
             </span>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -131,6 +144,13 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
               <FaUndo /> Reset
             </Button>
           </div>
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "var(--text-light)", marginBottom: "8px" }}>
+            Round history
+          </h4>
+          <StatusHistory events={history} domain={domain} />
         </div>
 
         {/* Interviewer Notes Section */}
@@ -211,55 +231,10 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
               </div>
             )}
 
-            {Object.keys(task)
-              .filter((key) => key.startsWith("question"))
-              .sort(
-                (a, b) =>
-                  parseInt(a.replace("question", "")) -
-                  parseInt(b.replace("question", "")),
-              )
-              .map((qKey, index) => {
-                const answer = task[qKey];
-                const answerText = Array.isArray(answer)
-                  ? answer.join("\n")
-                  : answer;
-                if (!answerText) return null;
-
-                return (
-                  <div
-                    key={qKey}
-                    style={{
-                      marginBottom: "24px",
-                      backgroundColor: "rgba(255,255,255,0.03)",
-                      padding: "16px",
-                      borderRadius: "8px",
-                      border: "1px solid var(--border-color)",
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: "bold",
-                        color: "var(--primary)",
-                        marginBottom: "8px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Question {index + 1}
-                    </h4>
-                    <p
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        color: "var(--text-main)",
-                        lineHeight: "1.6",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {answerText}
-                    </p>
-                  </div>
-                );
-              })}
+            <AnswerList
+              answers={task.answers || {}}
+              questions={questions.filter((q) => q.domain === domain)}
+            />
           </>
         )}
       </>
