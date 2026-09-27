@@ -18,6 +18,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
   const [activeTab, setActiveTab] = useState("profile");
   const [updating, setUpdating] = useState(false);
   const [history, setHistory] = useState([]);
+  const [notes, setNotes] = useState(user?.adminNotes || "");
   const questions = useQuestions();
 
   useEffect(() => {
@@ -59,7 +60,6 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
     }
   };
 
-  const [notes, setNotes] = useState(user.adminNotes || "");
 
   const handleSaveNotes = async () => {
     setUpdating(true);
