@@ -76,4 +76,34 @@ export const adminService = {
     });
     return response.data;
   },
+
+  runAiReview: async (userId, domain, force = false) => {
+    const response = await api.post(`/admin/ai-review`, { userId, domain, force });
+    return response.data;
+  },
+
+  getAiReviews: async (userId) => {
+    const response = await api.get(`/admin/ai-review`, { params: userId ? { userId } : {} });
+    return response.data;
+  },
+
+  getSimilarity: async (params) => {
+    const response = await api.get(`/admin/similarity`, { params });
+    return response.data;
+  },
+
+  saveReview: async (userId, domain, score, note) => {
+    const response = await api.put(`/admin/reviews`, { userId, domain, score, note });
+    return response.data;
+  },
+
+  getReviews: async (userId) => {
+    const response = await api.get(`/admin/reviews`, { params: userId ? { userId } : {} });
+    return response.data;
+  },
+
+  getRepoReport: async (url, userId) => {
+    const response = await api.get(`/admin/repo-report`, { params: { url, userId } });
+    return response.data;
+  },
 };
