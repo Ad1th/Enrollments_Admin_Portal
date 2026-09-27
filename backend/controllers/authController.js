@@ -4,26 +4,26 @@ import jwt from "jsonwebtoken";
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const secret = process.env.ACCESS_TOKEN_SECERT;
+    if (!secret) {
+      return res.status(500).json({ message: "Server misconfigured" });
+    }
+
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+
     const user = await User.findOne({ email });
+    const isValid = user && user.password && (await bcrypt.compare(password, user.password));
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid password" });
-    }
-
-    if (!user.admin) {
-        // Optional: Block non-admins if this is strictly admin portal
-        // return res.status(403).json({ message: "Access denied. Admins only." });
+    // Same answer for "no such user", "wrong password" and "not an admin", so
+    // the login form can't be used to discover which emails exist.
+    if (!isValid || !user.admin) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const accessToken = jwt.sign(
       { id: user._id, email: user.email, admin: user.admin },
-      process.env.ACCESS_TOKEN_SECERT || "secret",
+      secret,
       { expiresIn: "1d" }
     );
 
@@ -36,7 +36,6 @@ export const login = async (req, res) => {
         admin: user.admin
       }
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
