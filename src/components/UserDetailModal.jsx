@@ -13,13 +13,26 @@ import { adminService } from "../api/services";
 import { useQuestions } from "../hooks/useQuestions";
 import AnswerList from "./AnswerList";
 import StatusHistory, { roundLabel } from "./StatusHistory";
+import AiReviewPanel from "./AiReviewPanel";
+import ReviewScore from "./ReviewScore";
+import LinkInsights from "./LinkInsights";
+import ShortcutHelp from "./ShortcutHelp";
+import { useAuth } from "../context/AuthContext";
 
-const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
+const isTyping = (el) =>
+  el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+
+const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }) => {
   const [activeTab, setActiveTab] = useState("profile");
   const [updating, setUpdating] = useState(false);
   const [history, setHistory] = useState([]);
   const [notes, setNotes] = useState(user?.adminNotes || "");
   const questions = useQuestions();
+  const { adminEmail } = useAuth();
+  const [aiReviews, setAiReviews] = useState({});
+  const [aiSignal, setAiSignal] = useState(0);
+  const [scoreSignal, setScoreSignal] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -27,6 +40,39 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
       .getHistory(user._id)
       .then((res) => setHistory(res.data || []))
       .catch(() => setHistory([]));
+  }, [user?._id]);
+
+  const index = users.findIndex((u) => u._id === user?._id);
+  const tabs = ["profile", ...["tech", "design", "management"].filter((d) => (user?.domain || []).includes(d))];
+
+  // Keyboard-first review. Ignored while typing in notes.
+  useEffect(() => {
+    if (!user) return undefined;
+    const onKey = (e) => {
+      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const domainTab = ["tech", "design", "management"].includes(activeTab) ? activeTab : null;
+      const key = e.key.toLowerCase();
+      if (key === "escape") return showHelp ? setShowHelp(false) : onClose();
+      if (key === "?") return setShowHelp((v) => !v);
+      if ((key === "j" || key === "arrowdown") && index < users.length - 1) return onNavigate?.(users[index + 1]);
+      if ((key === "k" || key === "arrowup") && index > 0) return onNavigate?.(users[index - 1]);
+      if (key === "]" || key === "l") return setActiveTab(tabs[(tabs.indexOf(activeTab) + 1) % tabs.length]);
+      if (key === "[" || key === "h") return setActiveTab(tabs[(tabs.indexOf(activeTab) - 1 + tabs.length) % tabs.length]);
+      if (!domainTab || updating) return;
+      if (key === "p") return handleUpdateStatus(domainTab, "promote");
+      if (key === "x") return handleUpdateStatus(domainTab, "reject");
+      if (key === "u") return handleUpdateStatus(domainTab, "reset");
+      if (key === "a") return setAiSignal((n) => n + 1);
+      if (/^[1-5]$/.test(key)) return setScoreSignal({ n: Number(key), at: Date.now() });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // Open on the first applied domain rather than the profile when reviewing.
+  useEffect(() => {
+    setActiveTab((t) => (t === "profile" || !tabs.includes(t) ? tabs[1] || "profile" : t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]);
 
   if (!user) return null;
@@ -146,6 +192,16 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
           </div>
         </div>
 
+        <ReviewScore userId={user._id} domain={domain} me={adminEmail} scoreSignal={scoreSignal} />
+
+        <AiReviewPanel
+          userId={user._id}
+          domain={domain}
+          hasAnswers={Boolean(task && Object.keys(task.answers || {}).length)}
+          runSignal={aiSignal}
+          onReview={(r) => setAiReviews((prev) => ({ ...prev, [domain]: r }))}
+        />
+
         <div style={{ marginBottom: "24px" }}>
           <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "var(--text-light)", marginBottom: "8px" }}>
             Round history
@@ -234,6 +290,13 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
             <AnswerList
               answers={task.answers || {}}
               questions={questions.filter((q) => q.domain === domain)}
+              renderExtra={(key, text) => (
+                <LinkInsights
+                  text={text}
+                  userId={user._id}
+                  aiNote={aiReviews[domain]?.perQuestion?.find((p) => p.key === key)}
+                />
+              )}
             />
           </>
         )}
@@ -277,6 +340,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
           border: "1px solid var(--border-color)",
           animation: "slideIn 0.3s ease-out",
+          position: "relative",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -303,6 +367,11 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
             </h2>
             <p style={{ color: "var(--text-light)", fontFamily: "monospace" }}>
               {user.regno}
+              {index >= 0 && users.length > 1 && (
+                <span style={{ marginLeft: 12, fontFamily: "inherit" }}>
+                  {index + 1} / {users.length} · J/K to move · ? for shortcuts
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -321,6 +390,8 @@ const UserDetailModal = ({ user, onClose, onUserUpdate }) => {
             <FaTimes />
           </button>
         </div>
+
+        {showHelp && <ShortcutHelp onClose={() => setShowHelp(false)} />}
 
         {/* Content */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
