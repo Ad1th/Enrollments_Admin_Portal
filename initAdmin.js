@@ -58,7 +58,6 @@ const createAdmin = async () => {
     console.log("-----------------------------------------");
     console.log("ADMIN CREATED / UPDATED SUCCESSFULLY");
     console.log(`Email: ${email}`);
-    console.log(`Password: ${password}`);
     console.log("-----------------------------------------");
 
     await mongoose.disconnect();
