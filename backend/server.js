@@ -66,7 +66,9 @@ import {
   getDesignUsers,
   getManagementUsers,
   getSubdomainSubmissionStatus,
+  getUserHistory,
 } from "./controllers/adminController.js";
+import { listQuestions, updateQuestion } from "./controllers/questionController.js";
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -90,6 +92,9 @@ adminRouter.get("/usersdesign/:id", getDesignUsers);
 adminRouter.get("/usersmanagement/:id", getManagementUsers);
 adminRouter.put("/updatestatus/update", updateUserStatus);
 adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
+adminRouter.get("/history/:userId", getUserHistory);
+adminRouter.get("/questions", listQuestions);
+adminRouter.patch("/questions/:key", updateQuestion);
 
 app.use("/admin", adminRouter);
 
