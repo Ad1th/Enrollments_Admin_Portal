@@ -1270,6 +1270,8 @@ const Dashboard = ({ defaultDomain }) => {
         <UserDetailModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
+          users={processedUsers}
+          onNavigate={setSelectedUser}
           onUserUpdate={(updatedUser) => {
             if (updatedUser && updatedUser._id) {
               setUsers((prevUsers) =>
@@ -1278,7 +1280,8 @@ const Dashboard = ({ defaultDomain }) => {
                 ),
               );
             }
-            setSelectedUser(null);
+            // Stay open so the reviewer can keep going with the keyboard.
+            setSelectedUser((prev) => (prev ? { ...prev, ...updatedUser } : prev));
           }}
         />
       )}
