@@ -93,4 +93,9 @@ adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 
 app.use("/admin", adminRouter);
 
+// Vercel imports the app; locally `npm start` runs it as a server.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Admin backend on http://localhost:${PORT}`));
+}
+
 export default app;
