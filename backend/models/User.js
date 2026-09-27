@@ -20,6 +20,11 @@ const UserSchema = new Schema(
     isJC: { type: Boolean },
     isSC: { type: Boolean },
     adminNotes: { type: String, default: "" },
+    github: {
+      id: { type: Number, default: null },
+      login: { type: String, default: null },
+      avatarUrl: { type: String, default: null },
+    },
   },
   { timestamps: true }
 );
