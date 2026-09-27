@@ -71,6 +71,7 @@ import {
 import { listQuestions, updateQuestion } from "./controllers/questionController.js";
 import { runAiReview, listAiReviews } from "./controllers/aiReviewController.js";
 import { getSimilarity } from "./controllers/similarityController.js";
+import { saveReview, listReviews } from "./controllers/reviewController.js";
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -100,6 +101,8 @@ adminRouter.patch("/questions/:key", updateQuestion);
 adminRouter.post("/ai-review", runAiReview);
 adminRouter.get("/ai-review", listAiReviews);
 adminRouter.get("/similarity", getSimilarity);
+adminRouter.put("/reviews", saveReview);
+adminRouter.get("/reviews", listReviews);
 
 app.use("/admin", adminRouter);
 
