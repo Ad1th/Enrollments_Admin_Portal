@@ -69,6 +69,7 @@ import {
   getUserHistory,
 } from "./controllers/adminController.js";
 import { listQuestions, updateQuestion } from "./controllers/questionController.js";
+import { runAiReview, listAiReviews } from "./controllers/aiReviewController.js";
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -95,6 +96,8 @@ adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 adminRouter.get("/history/:userId", getUserHistory);
 adminRouter.get("/questions", listQuestions);
 adminRouter.patch("/questions/:key", updateQuestion);
+adminRouter.post("/ai-review", runAiReview);
+adminRouter.get("/ai-review", listAiReviews);
 
 app.use("/admin", adminRouter);
 
