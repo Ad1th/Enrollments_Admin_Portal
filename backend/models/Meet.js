@@ -12,6 +12,10 @@ const MeetSchema = new Schema(
       type: [String],
       default: [],
     },
+    domains: { type: [String], default: [] },
+    panelIncomplete: { type: Boolean, default: false },
+    reminderSentAt: { type: Date, default: null },
+    rescheduleCount: { type: Number, default: 0 },
     scheduledTime: {
       type: Date,
       required: true,
@@ -28,7 +32,7 @@ const MeetSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["scheduled", "underway", "completed", "cancelled"],
+      enum: ["scheduled", "underway", "completed", "cancelled", "no-show"],
       default: "scheduled",
     },
   },
