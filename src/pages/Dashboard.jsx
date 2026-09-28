@@ -67,6 +67,17 @@ const Dashboard = ({ defaultDomain }) => {
   const [selectedSubdomains, setSelectedSubdomains] = useState([]); // Array of strings
   const [showSubmittedOnly, setShowSubmittedOnly] = useState(false); // Filter for submitted
 
+  // ?open=<userId> (from the command palette) opens that candidate once loaded.
+  useEffect(() => {
+    const openId = new URLSearchParams(window.location.search).get("open");
+    if (!openId || users.length === 0) return;
+    const match = users.find((u) => u._id === openId);
+    if (match) {
+      setSelectedUser(match);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [users, window.location.search]);
+
   const fetchUsers = useCallback(async () => {
     setDataLoading(true);
     try {
