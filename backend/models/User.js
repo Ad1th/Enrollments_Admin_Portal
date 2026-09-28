@@ -20,6 +20,7 @@ const UserSchema = new Schema(
     isJC: { type: Boolean },
     isSC: { type: Boolean },
     adminNotes: { type: String, default: "" },
+    googleRefreshToken: { type: String, default: null, select: false },
     github: {
       id: { type: Number, default: null },
       login: { type: String, default: null },
