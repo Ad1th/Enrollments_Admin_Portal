@@ -7,6 +7,11 @@ dotenv.config();
 
 const seedMeets = async () => {
     try {
+        // This deletes meetings of real users; never let it near production.
+        if (!/localhost|127\.0\.0\.1/.test(process.env.CONNECT_STRING || "")) {
+            console.error("seedMeets only runs against a local database.");
+            process.exit(1);
+        }
         await mongoose.connect(process.env.CONNECT_STRING);
         console.log("Connected to DB");
 

@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 
 // Load env
 dotenv.config();
@@ -11,7 +12,8 @@ const PORT = 5003; // Independent port as planned
 
 // Add Global Middleware (Crucial for CORS and JSON)
 app.use(cors());
-app.use(express.json());
+app.set("trust proxy", 1);
+app.use(express.json({ limit: "1mb" }));
 
 // DB Connection Logic for Serverless
 const connectDB = async () => {
@@ -67,7 +69,15 @@ import {
 } from "./controllers/adminController.js";
 
 // Auth Routes
-authRouter.post("/login", login);
+// Best effort on serverless (each instance keeps its own counter), but it still
+// turns a password spray into a slow crawl.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => String(req.body?.email || req.ip).toLowerCase(),
+  message: { message: "Too many login attempts, try again later." },
+});
+authRouter.post("/login", loginLimiter, login);
 app.use("/auth", authRouter);
 
 // Admin Routes (Protected)
@@ -82,5 +92,10 @@ adminRouter.put("/updatestatus/update", updateUserStatus);
 adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 
 app.use("/admin", adminRouter);
+
+// Vercel imports the app; locally `npm start` runs it as a server.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Admin backend on http://localhost:${PORT}`));
+}
 
 export default app;
