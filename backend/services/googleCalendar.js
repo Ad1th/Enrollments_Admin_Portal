@@ -5,7 +5,7 @@ import User from "../models/User.js";
 // connected Google Calendar.
 const accessToken = async () => {
   const admin = await User.findOne({ admin: true, googleRefreshToken: { $ne: null } })
-    .select("+googleRefreshToken googleRefreshToken")
+    .select("+googleRefreshToken")
     .lean();
   if (!admin?.googleRefreshToken || !process.env.GOOGLE_CLIENT_ID) return null;
   const res = await fetch("https://oauth2.googleapis.com/token", {
