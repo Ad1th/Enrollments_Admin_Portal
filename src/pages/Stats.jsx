@@ -12,6 +12,20 @@ const STAGES = [
   ["accepted", "Accepted offer"],
 ];
 const TITLE = { tech: "Tech", design: "Design", management: "Management" };
+// Continuous daily series: days without sign-ups become explicit zeros so the
+// x-axis spacing reflects real time.
+const fillDays = (rows) => {
+  if (rows.length === 0) return rows;
+  const counts = new Map(rows.map((r) => [r.date, r.n]));
+  const out = [];
+  const end = new Date(`${rows[rows.length - 1].date}T00:00:00Z`);
+  for (let d = new Date(`${rows[0].date}T00:00:00Z`); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    out.push({ date: key, n: counts.get(key) || 0 });
+  }
+  return out;
+};
+
 const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : "–");
 
 const Tile = ({ label, value, sub }) => (
@@ -25,7 +39,7 @@ const Tile = ({ label, value, sub }) => (
 // Single-series horizontal bar with the value written next to it (no legend
 // needed; the row label names it). Hover shows the exact figure.
 const Bar = ({ label, value, max, note }) => (
-  <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 90px", gap: 12, alignItems: "center", margin: "6px 0" }} title={`${label}: ${value}${note ? ` (${note})` : ""}`}>
+  <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 80px", gap: 12, alignItems: "center", margin: "6px 0" }} title={`${label}: ${value}${note ? ` (${note})` : ""}`}>
     <span style={{ color: "var(--text-muted)", fontSize: 13 }}>{label}</span>
     <div style={{ height: 14, background: "rgba(255,255,255,0.04)", borderRadius: 4 }}>
       <div style={{ width: `${max ? (value / max) * 100 : 0}%`, height: "100%", background: "var(--primary)", borderRadius: "0 4px 4px 0", minWidth: value ? 2 : 0 }} />
@@ -122,7 +136,7 @@ const Stats = () => {
           <h3 style={{ marginBottom: 12 }}>Sign-ups per day</h3>
           <div style={{ height: 240 }}>
             <ResponsiveContainer>
-              <AreaChart data={s.signups} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+              <AreaChart data={fillDays(s.signups)} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="date" tick={{ fill: "#a0a0a0", fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
                 <YAxis allowDecimals={false} tick={{ fill: "#a0a0a0", fontSize: 11 }} tickLine={false} axisLine={false} />
