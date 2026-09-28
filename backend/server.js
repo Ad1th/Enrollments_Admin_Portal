@@ -69,6 +69,34 @@ import {
   getUserHistory,
 } from "./controllers/adminController.js";
 import { listQuestions, updateQuestion } from "./controllers/questionController.js";
+import { runAiReview, listAiReviews } from "./controllers/aiReviewController.js";
+import { getSimilarity } from "./controllers/similarityController.js";
+import { saveReview, listReviews } from "./controllers/reviewController.js";
+import { getRepoReport } from "./controllers/repoController.js";
+import {
+  listInterviewers,
+  createInterviewer,
+  updateInterviewer,
+  deleteInterviewer,
+  importInterviewers,
+} from "./controllers/interviewerController.js";
+import { listMeetings, updateMeeting } from "./controllers/meetingController.js";
+import { getOnboarding, saveOnboarding, listOffers } from "./controllers/settingsController.js";
+import {
+  previewAudience,
+  listTemplates,
+  saveTemplate,
+  deleteTemplate,
+  createCampaign,
+  sendBatch,
+  retryFailed,
+  listCampaigns,
+  trackOpen,
+} from "./controllers/commsController.js";
+import { getStats } from "./controllers/statsController.js";
+
+// Open-tracking pixel for comms mails; public by nature, only ever sets openedAt.
+app.get("/t/:id", trackOpen);
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -95,6 +123,31 @@ adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 adminRouter.get("/history/:userId", getUserHistory);
 adminRouter.get("/questions", listQuestions);
 adminRouter.patch("/questions/:key", updateQuestion);
+adminRouter.post("/ai-review", runAiReview);
+adminRouter.get("/ai-review", listAiReviews);
+adminRouter.get("/similarity", getSimilarity);
+adminRouter.put("/reviews", saveReview);
+adminRouter.get("/reviews", listReviews);
+adminRouter.get("/repo-report", getRepoReport);
+adminRouter.get("/interviewers", listInterviewers);
+adminRouter.post("/interviewers", createInterviewer);
+adminRouter.post("/interviewers/import", importInterviewers);
+adminRouter.patch("/interviewers/:id", updateInterviewer);
+adminRouter.delete("/interviewers/:id", deleteInterviewer);
+adminRouter.get("/meetings", listMeetings);
+adminRouter.patch("/meetings/:id", updateMeeting);
+adminRouter.get("/settings/onboarding", getOnboarding);
+adminRouter.put("/settings/onboarding", saveOnboarding);
+adminRouter.get("/offers", listOffers);
+adminRouter.post("/comms/audience", previewAudience);
+adminRouter.get("/comms/templates", listTemplates);
+adminRouter.post("/comms/templates", saveTemplate);
+adminRouter.delete("/comms/templates/:id", deleteTemplate);
+adminRouter.get("/comms/campaigns", listCampaigns);
+adminRouter.post("/comms/campaigns", createCampaign);
+adminRouter.post("/comms/campaigns/:id/send", sendBatch);
+adminRouter.post("/comms/campaigns/:id/retry", retryFailed);
+adminRouter.get("/stats", getStats);
 
 app.use("/admin", adminRouter);
 
