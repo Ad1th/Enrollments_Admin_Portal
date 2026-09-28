@@ -6,6 +6,11 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Similarity from './pages/Similarity';
 import Questions from './pages/Questions';
+import Interviewers from './pages/Interviewers';
+import Interviews from './pages/Interviews';
+import Comms from './pages/Comms';
+import Stats from './pages/Stats';
+import Settings from './pages/Settings';
 import './index.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -37,6 +42,11 @@ const AppRoutes = () => {
         <Route path="management" element={<Dashboard defaultDomain="management" />} />
         <Route path="similarity" element={<Similarity />} />
         <Route path="questions" element={<Questions />} />
+        <Route path="interviews" element={<Interviews />} />
+        <Route path="interviewers" element={<Interviewers />} />
+        <Route path="comms" element={<Comms />} />
+        <Route path="stats" element={<Stats />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );

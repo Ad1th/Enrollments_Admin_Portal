@@ -10,6 +10,11 @@ export const PAGES = [
   { label: "Management applicants", path: "/management" },
   { label: "Copy check", path: "/similarity" },
   { label: "Questions & rubrics", path: "/questions" },
+  { label: "Interviews", path: "/interviews" },
+  { label: "Interviewers", path: "/interviewers" },
+  { label: "Comms", path: "/comms" },
+  { label: "Stats", path: "/stats" },
+  { label: "Onboarding links", path: "/settings" },
 ];
 
 let usersCache = null;
