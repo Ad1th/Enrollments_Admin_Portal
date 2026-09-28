@@ -51,6 +51,7 @@ const SUBDOMAINS = {
 };
 
 import { useAuth } from "../context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Dashboard = ({ defaultDomain }) => {
   const { token, loading: authLoading, logout } = useAuth();
@@ -68,15 +69,17 @@ const Dashboard = ({ defaultDomain }) => {
   const [showSubmittedOnly, setShowSubmittedOnly] = useState(false); // Filter for submitted
 
   // ?open=<userId> (from the command palette) opens that candidate once loaded.
+  const location = useLocation();
+  const routerNavigate = useNavigate();
   useEffect(() => {
-    const openId = new URLSearchParams(window.location.search).get("open");
+    const openId = new URLSearchParams(location.search).get("open");
     if (!openId || users.length === 0) return;
     const match = users.find((u) => u._id === openId);
     if (match) {
       setSelectedUser(match);
-      window.history.replaceState(null, "", window.location.pathname);
+      routerNavigate(location.pathname, { replace: true });
     }
-  }, [users, window.location.search]);
+  }, [users, location.search, location.pathname, routerNavigate]);
 
   const fetchUsers = useCallback(async () => {
     setDataLoading(true);
