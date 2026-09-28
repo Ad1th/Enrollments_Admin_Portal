@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import Submission from "../models/Submission.js";
 import StatusEvent from "../models/StatusEvent.js";
+import { applyStatusEffects } from "../services/statusEffects.js";
 
 const DOMAINS = ["tech", "design", "management"];
 const ROUNDS = [-1, 0, 1, 2, 3];
@@ -141,6 +142,7 @@ export const updateUserStatus = async (req, res) => {
 
     await user.save();
     const saved = events.length ? await StatusEvent.insertMany(events) : [];
+    await applyStatusEffects(events);
 
     res.status(200).json({ success: true, message: "Status updated", user, events: saved });
   } catch (error) {

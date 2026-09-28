@@ -106,4 +106,28 @@ export const adminService = {
     const response = await api.get(`/admin/repo-report`, { params: { url, userId } });
     return response.data;
   },
+
+  getInterviewers: async () => (await api.get(`/admin/interviewers`)).data,
+  createInterviewer: async (fields) => (await api.post(`/admin/interviewers`, fields)).data,
+  importInterviewers: async (text) => (await api.post(`/admin/interviewers/import`, { text })).data,
+  updateInterviewer: async (id, fields) => (await api.patch(`/admin/interviewers/${id}`, fields)).data,
+  deleteInterviewer: async (id) => (await api.delete(`/admin/interviewers/${id}`)).data,
+
+  getMeetings: async (params) => (await api.get(`/admin/meetings`, { params })).data,
+  updateMeeting: async (id, fields) => (await api.patch(`/admin/meetings/${id}`, fields)).data,
+
+  getOnboarding: async () => (await api.get(`/admin/settings/onboarding`)).data,
+  saveOnboarding: async (value) => (await api.put(`/admin/settings/onboarding`, value)).data,
+  getOffers: async (userId) => (await api.get(`/admin/offers`, { params: userId ? { userId } : {} })).data,
+
+  previewAudience: async (filter, subject, body) => (await api.post(`/admin/comms/audience`, { filter, subject, body })).data,
+  getTemplates: async () => (await api.get(`/admin/comms/templates`)).data,
+  saveTemplate: async (tpl) => (await api.post(`/admin/comms/templates`, tpl)).data,
+  deleteTemplate: async (id) => (await api.delete(`/admin/comms/templates/${id}`)).data,
+  getCampaigns: async () => (await api.get(`/admin/comms/campaigns`)).data,
+  createCampaign: async (campaign) => (await api.post(`/admin/comms/campaigns`, campaign)).data,
+  sendCampaignBatch: async (id) => (await api.post(`/admin/comms/campaigns/${id}/send`)).data,
+  retryCampaign: async (id) => (await api.post(`/admin/comms/campaigns/${id}/retry`)).data,
+
+  getStats: async () => (await api.get(`/admin/stats`)).data,
 };

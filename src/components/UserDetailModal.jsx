@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, Button } from "./ResultComponents";
 import {
   FaTimes,
@@ -33,6 +34,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
   const [aiSignal, setAiSignal] = useState(0);
   const [scoreSignal, setScoreSignal] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [offers, setOffers] = useState([]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -41,6 +43,15 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
       .then((res) => setHistory(res.data || []))
       .catch(() => setHistory([]));
   }, [user?._id]);
+
+  // Re-read offers whenever a round changes, since selecting creates one.
+  useEffect(() => {
+    if (!user?._id) return;
+    adminService
+      .getOffers(user._id)
+      .then((res) => setOffers(res.data || []))
+      .catch(() => setOffers([]));
+  }, [user?._id, history.length]);
 
   const index = users.findIndex((u) => u._id === user?._id);
   const tabs = ["profile", ...["tech", "design", "management"].filter((d) => (user?.domain || []).includes(d))];
@@ -192,6 +203,25 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
           </div>
         </div>
 
+        {(() => {
+          const offer = offers.find((o) => o.domain === domain);
+          const meetingDomains = user.meetingTime ? " · interview booked for " + new Date(user.meetingTime).toLocaleString() : "";
+          if (!offer && !meetingDomains) return null;
+          const colour = { pending: "#f59e42", accepted: "#22c55e", declined: "#ef4444", revoked: "var(--text-light)" };
+          return (
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+              {offer && (
+                <>
+                  Offer: <strong style={{ color: colour[offer.status] }}>{offer.status}</strong>
+                  {offer.status === "accepted" && ` · GitHub invite: ${offer.onboarding?.github?.status || "n/a"}`}
+                </>
+              )}
+              {meetingDomains}
+              {user.interviewers?.length ? ` · panel: ${user.interviewers.map((e) => e.split("@")[0]).join(", ")}` : ""}
+            </p>
+          );
+        })()}
+
         <ReviewScore userId={user._id} domain={domain} me={adminEmail} scoreSignal={scoreSignal} />
 
         <AiReviewPanel
@@ -310,7 +340,9 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
     );
   };
 
-  return (
+  // Portalled to <body>: the page wrapper animates with a transform, which
+  // would otherwise make this "fixed" overlay relative to the wrapper.
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -610,6 +642,8 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
         </div>
       </div>
     </div>
+    ,
+    document.body
   );
 };
 
