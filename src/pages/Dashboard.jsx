@@ -40,18 +40,18 @@ const SUBDOMAINS = {
   design: [
     { label: "Graphic Design", value: "graphicdesign" },
     { label: "UI/UX", value: "ui/ux" },
-    { label: "3D Modelling", value: "3d" },
     { label: "Video Editing", value: "videoediting/photography" },
   ],
   management: [
     { label: "Outreach", value: "outreach" },
     { label: "General Ops", value: "generaloperations" },
     { label: "Publicity", value: "publicity" },
-    { label: "Events", value: "editorial" },
+    { label: "Events", value: "events" },
   ],
 };
 
 import { useAuth } from "../context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Dashboard = ({ defaultDomain }) => {
   const { token, loading: authLoading, logout } = useAuth();
@@ -67,6 +67,19 @@ const Dashboard = ({ defaultDomain }) => {
   const [filterDate, setFilterDate] = useState(""); // YYYY-MM-DD
   const [selectedSubdomains, setSelectedSubdomains] = useState([]); // Array of strings
   const [showSubmittedOnly, setShowSubmittedOnly] = useState(false); // Filter for submitted
+
+  // ?open=<userId> (from the command palette) opens that candidate once loaded.
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  useEffect(() => {
+    const openId = new URLSearchParams(location.search).get("open");
+    if (!openId || users.length === 0) return;
+    const match = users.find((u) => u._id === openId);
+    if (match) {
+      setSelectedUser(match);
+      routerNavigate(location.pathname, { replace: true });
+    }
+  }, [users, location.search, location.pathname, routerNavigate]);
 
   const fetchUsers = useCallback(async () => {
     setDataLoading(true);
@@ -1271,6 +1284,8 @@ const Dashboard = ({ defaultDomain }) => {
         <UserDetailModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
+          users={processedUsers}
+          onNavigate={setSelectedUser}
           onUserUpdate={(updatedUser) => {
             if (updatedUser && updatedUser._id) {
               setUsers((prevUsers) =>
@@ -1279,7 +1294,8 @@ const Dashboard = ({ defaultDomain }) => {
                 ),
               );
             }
-            setSelectedUser(null);
+            // Stay open so the reviewer can keep going with the keyboard.
+            setSelectedUser((prev) => (prev ? { ...prev, ...updatedUser } : prev));
           }}
         />
       )}

@@ -1,567 +1,166 @@
-// Example: Segregate all tech, design, and management tasks by subdomain and submission status
-import TechTask from "../models/TechTask.js";
-import DesignTask from "../models/DesignTask.js";
-import ManagementTask from "../models/ManagementTask.js";
-
-export const getSubdomainSubmissionStatus = async (req, res) => {
-  try {
-    // Load all tasks
-    const techtasks = await TechTask.find({}).lean();
-    const designtasks = await DesignTask.find({}).lean();
-    const managementtasks = await ManagementTask.find({}).lean();
-
-    // Define question keys for each task type (from backend models)
-    const techKeys = [
-      "question1",
-      "question2",
-      "question3",
-      "question4",
-      "question5",
-    ];
-    const designKeys = [
-      "question1",
-      "question2",
-      "question3",
-      "question4",
-      "question5",
-      "question6",
-      "question7",
-      "question8",
-      "question9",
-      "question10",
-      "question11",
-      "question12",
-      "question13",
-    ];
-    const managementKeys = [
-      "question1",
-      "question2",
-      "question3",
-      "question4",
-      "question5",
-      "question6",
-      "question7",
-      "question8",
-      "question9",
-      "question10",
-      "question11",
-      "question12",
-      "question13",
-      "question14",
-      "question15",
-      "question16",
-      "question17",
-    ];
-
-    // Use the utility to segregate
-    // Use the utility to segregate
-    const techResult = segregateBySubdomain(techtasks, techKeys, "tech");
-    const designResult = segregateBySubdomain(designtasks, designKeys, "design");
-    const managementResult = segregateBySubdomain(
-      managementtasks,
-      managementKeys,
-      "management"
-    );
-
-    res.status(200).json({
-      success: true,
-      tech: techResult,
-      design: designResult,
-      management: managementResult,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error segregating submissions" });
-  }
-};
+import mongoose from "mongoose";
 import User from "../models/User.js";
+import Submission from "../models/Submission.js";
+import StatusEvent from "../models/StatusEvent.js";
+import { applyStatusEffects } from "../services/statusEffects.js";
 
-const inferSubdomain = (task, type = "management") => {
-  if (type === "management") {
-    // Events check (Question 17) - Mapped to 'editorial' for consistency
-    if (hasAnswer(task, "question17")) return ["editorial"];
+const DOMAINS = ["tech", "design", "management"];
+const ROUNDS = [-1, 0, 1, 2, 3];
 
-    // Publicity check (Questions 12-16)
-    const publicityQs = [
-      "question12",
-      "question13",
-      "question14",
-      "question15",
-      "question16",
-    ];
-    if (publicityQs.some((q) => hasAnswer(task, q))) return ["publicity"];
+// Candidates joined with their submissions and meeting. Submissions are split
+// into techTasks/designTasks/managementTasks arrays because that is the shape
+// the dashboard filters on.
+const candidatesPipeline = (match) => [
+  { $match: match },
+  { $sort: { createdAt: -1 } },
+  {
+    $lookup: {
+      from: "submissions",
+      localField: "_id",
+      foreignField: "user_id",
+      as: "submissions",
+    },
+  },
+  {
+    $lookup: {
+      from: "meetdetails",
+      localField: "_id",
+      foreignField: "user_id",
+      as: "meetDetails",
+    },
+  },
+  {
+    $project: {
+      password: 0,
+      refreshToken: 0,
+      prevAccessToken: 0,
+      emailToken: 0,
+      emailTokenExpires: 0,
+      googleRefreshToken: 0,
+      tokenVersion: 0,
+      "github.token": 0,
+    },
+  },
+  {
+    $addFields: {
+      ...Object.fromEntries(
+        DOMAINS.map((d) => [
+          `${d}Tasks`,
+          { $filter: { input: "$submissions", cond: { $eq: ["$$this.domain", d] } } },
+        ])
+      ),
+      meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
+      meetStatus: { $arrayElemAt: ["$meetDetails.status", 0] },
+      interviewers: { $arrayElemAt: ["$meetDetails.intervieweremail", 0] },
+      hasSubmitted: { $anyElementTrue: [{ $map: { input: "$submissions", in: "$$this.isDone" } }] },
+    },
+  },
+  { $project: { submissions: 0, meetDetails: 0 } },
+];
 
-    // Outreach check (Questions 7-11)
-    const outreachQs = [
-      "question7",
-      "question8",
-      "question9",
-      "question10",
-      "question11",
-    ];
-    if (outreachQs.some((q) => hasAnswer(task, q))) return ["outreach"];
-
-    // General Operations check (Questions 2-6)
-    const genOpsQs = [
-      "question2",
-      "question3",
-      "question4",
-      "question5",
-      "question6",
-    ];
-    if (genOpsQs.some((q) => hasAnswer(task, q))) return ["generaloperations"];
-  } else if (type === "tech") {
-     // CP (Question 4 - XOR Linked List) - prioritzed based on frequency
-     if (hasAnswer(task, "question4")) return ["cp"];
-
-     // Backend (Question 3 - Compiled vs Interpreted)
-     if (hasAnswer(task, "question3")) return ["backend"];
-
-     // Frontend (Question 2 - NPM)
-     if (hasAnswer(task, "question2")) return ["frontend"];
-
-     // App / Cyber Security (Question 5 - Steganography)
-     // Mapping to 'app' primarily, but could be cyber-sec. Since we need a decision, mapping to 'app'
-     if (hasAnswer(task, "question5")) return ["app"];
-  } else if (type === "design") {
-      // Video Editing (Questions 12, 13)
-      if (hasAnswer(task, "question12") || hasAnswer(task, "question13")) return ["videoediting/photography"];
-      
-      // UI/UX (Questions 10, 11)
-      if (hasAnswer(task, "question10") || hasAnswer(task, "question11")) return ["ui/ux"];
-
-      // Graphic Design (Question 9)
-      if (hasAnswer(task, "question9")) return ["graphicdesign"];
-  }
-  return [];
-};
-
-const hasAnswer = (task, key) => {
-  if (!Array.isArray(task[key])) return false;
-  
-  return task[key].some(ans => {
-      if (typeof ans !== 'string') return false;
-      const trimmed = ans.trim();
-      if (trimmed.length === 0) return false;
-      
-      // Filter out common placeholders
-      const placeholders = [
-          "question1", "question2", "question3", "question4", "question5",
-          "question6", "question7", "question8", "question9", "question10",
-          "question11", "question12", "question13", "question14", "question15",
-          "question16", "question17",
-          "What is npm, and how does a developer use it?",
-          "What is the difference between a compiled language and an interpreted language?",
-          "Research XOR Linked Lists and explain how they work in your own words.",
-          "Suppose you want to hide some data in a multimedia file. What would be your approach?",
-          "Imagine you're editing a piece of content and discover a factual error.",
-          "BrightHive, a fast-growing AI startup, needs a modern logo."
-      ];
-      
-      // Check if answer is just the placeholder question text
-      if (placeholders.some(p => trimmed.startsWith(p) || trimmed === p)) {
-           // Some users might leave the question and add answer. logic: if length is significantly longer than placeholder?
-           // For safety: if exact match or very close, ignore.
-           if (trimmed.length < 50 && placeholders.includes(trimmed)) return false;
-       }
-       
-      return true;
-  });
-};
-
-function segregateBySubdomain(tasks, questionKeys, type = "management") {
-  const result = {};
-  for (const task of tasks) {
-    let subdomains = task.subdomain;
-
-    // Normalize or Infer
-    if (!subdomains || (Array.isArray(subdomains) && subdomains.length === 0)) {
-      subdomains = inferSubdomain(task, type);
-    } else if (typeof subdomains === "string") {
-      subdomains = subdomains.split(",").map((s) => s.trim().toLowerCase());
-    } else if (Array.isArray(subdomains)) {
-      subdomains = subdomains.map((s) => s.toLowerCase());
-    }
-
-    // Fix events naming (using 'editorial' consistently)
-    subdomains = subdomains.map((s) => (s === "events" ? "editorial" : s));
-
-    const submitted = hasSubmission(task, questionKeys);
-    if (subdomains.length === 0) {
-      if (!result["unspecified"])
-        result["unspecified"] = { submitted: [], notSubmitted: [] };
-      if (submitted)
-        result["unspecified"].submitted.push(
-          task.user_id?.$oid || task.user_id
-        );
-      else
-        result["unspecified"].notSubmitted.push(
-          task.user_id?.$oid || task.user_id
-        );
-    } else {
-      for (const sub of subdomains) {
-        if (!result[sub]) result[sub] = { submitted: [], notSubmitted: [] };
-        if (submitted)
-          result[sub].submitted.push(task.user_id?.$oid || task.user_id);
-        else result[sub].notSubmitted.push(task.user_id?.$oid || task.user_id);
-      }
-    }
-  }
-  return result;
-}
-
-export const getAllUsers = async (req, res) => {
+const listCandidates = (forcedDomain) => async (req, res) => {
   try {
-    const { domain, subdomain } = req.query;
-    let filter = {};
+    const domain = forcedDomain || (req.query.domain !== "All" && req.query.domain);
+    const match = { admin: { $ne: true } };
+    if (domain) match.domain = domain;
 
-    // Simple regex search if query param provided (search term logic from old controller)
-    // Here we implement basic filtering
-    if (domain && domain !== "All") {
-      filter.domain = domain;
-    }
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 1000;
-    const skip = (page - 1) * limit;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 5000, 5000);
 
     const users = await User.aggregate([
-      { $match: filter },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
+      ...candidatesPipeline(match),
+      { $skip: (page - 1) * limit },
       { $limit: limit },
-      {
-        $lookup: {
-          from: "techtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "techTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "designtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "designTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "managementtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "managementTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "meetdetails",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "meetDetails",
-        },
-      },
-      {
-        $addFields: {
-          meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
-          meetStatus: { $arrayElemAt: ["$meetDetails.status", 0] },
-          hasSubmitted: {
-            $or: [
-              {
-                $gt: [
-                  {
-                    $size: {
-                      $filter: {
-                        input: "$techTasks",
-                        as: "task",
-                        cond: {
-                          $or: [
-                            { $gt: [{ $size: "$$task.question1" }, 0] },
-                            { $gt: [{ $size: "$$task.question2" }, 0] },
-                            { $gt: [{ $size: "$$task.question3" }, 0] },
-                            { $gt: [{ $size: "$$task.question4" }, 0] },
-                            { $gt: [{ $size: "$$task.question5" }, 0] },
-                          ],
-                        },
-                      },
-                    },
-                  },
-                  0,
-                ],
-              },
-              {
-                $gt: [
-                  {
-                    $size: {
-                      $filter: {
-                        input: "$designTasks",
-                        as: "task",
-                        cond: {
-                          $or: [
-                            { $gt: [{ $size: "$$task.question1" }, 0] },
-                            { $gt: [{ $size: "$$task.question2" }, 0] },
-                            { $gt: [{ $size: "$$task.question3" }, 0] },
-                            { $gt: [{ $size: "$$task.question4" }, 0] },
-                            { $gt: [{ $size: "$$task.question5" }, 0] },
-                            { $gt: [{ $size: "$$task.question6" }, 0] },
-                            { $gt: [{ $size: "$$task.question7" }, 0] },
-                            { $gt: [{ $size: "$$task.question8" }, 0] },
-                            { $gt: [{ $size: "$$task.question9" }, 0] },
-                            { $gt: [{ $size: "$$task.question10" }, 0] },
-                            { $gt: [{ $size: "$$task.question11" }, 0] },
-                            { $gt: [{ $size: "$$task.question12" }, 0] },
-                            { $gt: [{ $size: "$$task.question13" }, 0] },
-                          ],
-                        },
-                      },
-                    },
-                  },
-                  0,
-                ],
-              },
-              {
-                $gt: [
-                  {
-                    $size: {
-                      $filter: {
-                        input: "$managementTasks",
-                        as: "task",
-                        cond: {
-                          $or: [
-                            { $gt: [{ $size: "$$task.question1" }, 0] },
-                            { $gt: [{ $size: "$$task.question2" }, 0] },
-                            { $gt: [{ $size: "$$task.question3" }, 0] },
-                            { $gt: [{ $size: "$$task.question4" }, 0] },
-                            { $gt: [{ $size: "$$task.question5" }, 0] },
-                            { $gt: [{ $size: "$$task.question6" }, 0] },
-                            { $gt: [{ $size: "$$task.question7" }, 0] },
-                            { $gt: [{ $size: "$$task.question8" }, 0] },
-                            { $gt: [{ $size: "$$task.question9" }, 0] },
-                            { $gt: [{ $size: "$$task.question10" }, 0] },
-                            { $gt: [{ $size: "$$task.question11" }, 0] },
-                            { $gt: [{ $size: "$$task.question12" }, 0] },
-                            { $gt: [{ $size: "$$task.question13" }, 0] },
-                            { $gt: [{ $size: "$$task.question14" }, 0] },
-                            { $gt: [{ $size: "$$task.question15" }, 0] },
-                            { $gt: [{ $size: "$$task.question16" }, 0] },
-                            { $gt: [{ $size: "$$task.question17" }, 0] },
-                          ],
-                        },
-                      },
-                    },
-                  },
-                  0,
-                ],
-              },
-            ],
-          },
-        },
-      },
     ]);
-
-    // Post-processing to infer subdomains for All Tasks
-    users.forEach((user) => {
-      // Tech
-      if (user.techTasks && user.techTasks.length > 0) {
-        user.techTasks.forEach((task) => {
-             if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
-                task.subdomain = inferSubdomain(task, "tech");
-             }
-        });
-      }
-      
-      // Design
-      if (user.designTasks && user.designTasks.length > 0) {
-        user.designTasks.forEach((task) => {
-             if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
-                task.subdomain = inferSubdomain(task, "design");
-             }
-        });
-      }
-
-      // Management
-      if (user.managementTasks && user.managementTasks.length > 0) {
-        user.managementTasks.forEach((task) => {
-          if (
-            !task.subdomain ||
-            (Array.isArray(task.subdomain) && task.subdomain.length === 0)
-          ) {
-            task.subdomain = inferSubdomain(task, "management");
-          } else {
-             // Ensure legacy mixed naming is normalized to 'editorial'
-             let sub = task.subdomain;
-             if (typeof sub === 'string') sub = sub.split(',').map(s=>s.trim());
-             if (Array.isArray(sub)) {
-                 task.subdomain = sub.map(s => s.toLowerCase() === 'events' ? 'editorial' : s);
-             }
-          }
-        });
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      data: users,
-    });
+    res.status(200).json({ success: true, data: users });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching users" });
   }
 };
 
-export const getTechUsers = async (req, res) => {
+export const getAllUsers = listCandidates(null);
+export const getTechUsers = listCandidates("tech");
+export const getDesignUsers = listCandidates("design");
+export const getManagementUsers = listCandidates("management");
+
+// Per domain and subdomain: which users submitted and which only have a draft.
+export const getSubdomainSubmissionStatus = async (req, res) => {
   try {
-    const users = await User.aggregate([
-      { $match: { domain: "tech" } },
+    const rows = await Submission.aggregate([
+      { $unwind: { path: "$subdomain", preserveNullAndEmptyArrays: true } },
       {
-        $lookup: {
-          from: "techtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "techTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "meetdetails",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "meetDetails",
-        },
-      },
-      {
-        $addFields: {
-          meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
+        $group: {
+          _id: { domain: "$domain", subdomain: { $ifNull: ["$subdomain", "unspecified"] } },
+          submitted: { $push: { $cond: ["$isDone", "$user_id", "$$REMOVE"] } },
+          notSubmitted: { $push: { $cond: ["$isDone", "$$REMOVE", "$user_id"] } },
         },
       },
     ]);
-    users.forEach((user) => {
-        if (user.techTasks) {
-            user.techTasks.forEach(task => {
-                if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
-                    task.subdomain = inferSubdomain(task, "tech");
-                }
-            })
-        }
-    });
-    res.status(200).json({ success: true, data: users });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
+    const result = { success: true, tech: {}, design: {}, management: {} };
+    for (const r of rows) {
+      result[r._id.domain][r._id.subdomain] = {
+        submitted: r.submitted,
+        notSubmitted: r.notSubmitted,
+      };
+    }
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error segregating submissions" });
   }
 };
 
-export const getDesignUsers = async (req, res) => {
-  try {
-    const users = await User.aggregate([
-      { $match: { domain: "design" } },
-      {
-        $lookup: {
-          from: "designtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "designTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "meetdetails",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "meetDetails",
-        },
-      },
-      {
-        $addFields: {
-          meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
-        },
-      },
-    ]);
-    users.forEach((user) => {
-        if (user.designTasks) {
-            user.designTasks.forEach(task => {
-                if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
-                    task.subdomain = inferSubdomain(task, "design");
-                }
-            })
-        }
-    });
-    res.status(200).json({ success: true, data: users });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-};
-
-export const getManagementUsers = async (req, res) => {
-  try {
-    const users = await User.aggregate([
-      { $match: { domain: "management" } },
-      {
-        $lookup: {
-          from: "managementtasks",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "managementTasks",
-        },
-      },
-      {
-        $lookup: {
-          from: "meetdetails",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "meetDetails",
-        },
-      },
-      {
-        $addFields: {
-          meetingTime: { $arrayElemAt: ["$meetDetails.scheduledTime", 0] },
-        },
-      },
-    ]);
-    users.forEach((user) => {
-        if (user.managementTasks) {
-            user.managementTasks.forEach(task => {
-                if (!task.subdomain || (Array.isArray(task.subdomain) && task.subdomain.length === 0)) {
-                    task.subdomain = inferSubdomain(task, "management");
-                } else {
-                     let sub = task.subdomain;
-                     if (typeof sub === 'string') sub = sub.split(',').map(s=>s.trim());
-                     if (Array.isArray(sub)) {
-                         task.subdomain = sub.map(s => s.toLowerCase() === 'events' ? 'editorial' : s);
-                     }
-                }
-            })
-        }
-    });
-    res.status(200).json({ success: true, data: users });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-};
-
+// Updates rounds and/or notes; every round change is logged in StatusEvent.
 export const updateUserStatus = async (req, res) => {
   try {
-    const { regno, tech, design, management, adminNotes } = req.body;
-
+    const { regno, adminNotes, note } = req.body;
     if (!regno) return res.status(400).json({ message: "RegNo required" });
 
-    const updateFields = {};
-    if (tech !== undefined) updateFields.tech = tech;
-    if (design !== undefined) updateFields.design = design;
-    if (management !== undefined) updateFields.management = management;
-    if (adminNotes !== undefined) updateFields.adminNotes = adminNotes;
-
-    const user = await User.findOneAndUpdate(
-      { regno: regno },
-      { $set: updateFields },
-      { new: true },
-    );
-
+    const user = await User.findOne({ regno });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json({ success: true, message: "Status updated", user });
+    const events = [];
+    for (const domain of DOMAINS) {
+      if (req.body[domain] === undefined) continue;
+      const next = Number(req.body[domain]);
+      if (!ROUNDS.includes(next)) {
+        return res.status(400).json({ message: `${domain} must be between -1 and 3` });
+      }
+      if ((user[domain] ?? 0) === next) continue;
+      events.push({
+        user_id: user._id,
+        domain,
+        from: user[domain] ?? 0,
+        to: next,
+        actor: req.user?.email || "admin",
+        note: note || "",
+      });
+      user[domain] = next;
+    }
+    if (adminNotes !== undefined) user.adminNotes = adminNotes;
+
+    await user.save();
+    const saved = events.length ? await StatusEvent.insertMany(events) : [];
+    await applyStatusEffects(events);
+
+    res.status(200).json({ success: true, message: "Status updated", user, events: saved });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error updating status" });
+  }
+};
+
+export const getUserHistory = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.userId)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+    const events = await StatusEvent.find({ user_id: req.params.userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching history" });
   }
 };
