@@ -82,6 +82,20 @@ import {
 } from "./controllers/interviewerController.js";
 import { listMeetings, updateMeeting } from "./controllers/meetingController.js";
 import { getOnboarding, saveOnboarding, listOffers } from "./controllers/settingsController.js";
+import {
+  previewAudience,
+  listTemplates,
+  saveTemplate,
+  deleteTemplate,
+  createCampaign,
+  sendBatch,
+  retryFailed,
+  listCampaigns,
+  trackOpen,
+} from "./controllers/commsController.js";
+
+// Open-tracking pixel for comms mails; public by nature, only ever sets openedAt.
+app.get("/t/:id", trackOpen);
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -124,6 +138,14 @@ adminRouter.patch("/meetings/:id", updateMeeting);
 adminRouter.get("/settings/onboarding", getOnboarding);
 adminRouter.put("/settings/onboarding", saveOnboarding);
 adminRouter.get("/offers", listOffers);
+adminRouter.post("/comms/audience", previewAudience);
+adminRouter.get("/comms/templates", listTemplates);
+adminRouter.post("/comms/templates", saveTemplate);
+adminRouter.delete("/comms/templates/:id", deleteTemplate);
+adminRouter.get("/comms/campaigns", listCampaigns);
+adminRouter.post("/comms/campaigns", createCampaign);
+adminRouter.post("/comms/campaigns/:id/send", sendBatch);
+adminRouter.post("/comms/campaigns/:id/retry", retryFailed);
 
 app.use("/admin", adminRouter);
 
