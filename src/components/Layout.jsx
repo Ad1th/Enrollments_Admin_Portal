@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CommandPalette from './CommandPalette';
-import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt } from 'react-icons/fa';
 
 const Sidebar = () => {
   const { logout } = useAuth();
@@ -19,6 +19,8 @@ const Sidebar = () => {
     { path: '/tech', icon: <FaLaptopCode />, label: 'Tech' },
     { path: '/design', icon: <FaPaintBrush />, label: 'Design' },
     { path: '/management', icon: <FaTasks />, label: 'Management' },
+    { path: '/similarity', icon: <FaClone />, label: 'Copy check' },
+    { path: '/questions', icon: <FaListAlt />, label: 'Questions & rubrics' },
   ];
 
   return (

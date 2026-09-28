@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Similarity from './pages/Similarity';
+import Questions from './pages/Questions';
 import './index.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -33,6 +35,8 @@ const AppRoutes = () => {
         <Route path="tech" element={<Dashboard defaultDomain="tech" />} />
         <Route path="design" element={<Dashboard defaultDomain="design" />} />
         <Route path="management" element={<Dashboard defaultDomain="management" />} />
+        <Route path="similarity" element={<Similarity />} />
+        <Route path="questions" element={<Questions />} />
       </Route>
     </Routes>
   );
