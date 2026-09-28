@@ -80,6 +80,7 @@ import {
   deleteInterviewer,
   importInterviewers,
 } from "./controllers/interviewerController.js";
+import { listMeetings, updateMeeting } from "./controllers/meetingController.js";
 
 // Auth Routes
 // Best effort on serverless (each instance keeps its own counter), but it still
@@ -117,6 +118,8 @@ adminRouter.post("/interviewers", createInterviewer);
 adminRouter.post("/interviewers/import", importInterviewers);
 adminRouter.patch("/interviewers/:id", updateInterviewer);
 adminRouter.delete("/interviewers/:id", deleteInterviewer);
+adminRouter.get("/meetings", listMeetings);
+adminRouter.patch("/meetings/:id", updateMeeting);
 
 app.use("/admin", adminRouter);
 
