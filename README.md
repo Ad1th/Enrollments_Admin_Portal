@@ -79,3 +79,18 @@ The UI is strictly typed to the MFC Brand Identity:
 <p align="center">
   Made with 🧡 for <strong>MFC</strong>
 </p>
+
+## Review tools
+
+| Feature | Where | Needs |
+| --- | --- | --- |
+| AI second opinion (scores answers against rubrics, flags prompt injection) | candidate modal, `A` | `LLM_API_KEY` (+ optional `LLM_BASE_URL`, `LLM_MODEL`). Defaults to Groq's free tier (`llama-3.3-70b-versatile`); xAI Grok, OpenRouter or any OpenAI-compatible API also work. |
+| Copy check (near-duplicate answers, shared links) | Copy check page | nothing, runs locally |
+| Reviewer scores 1–5 with panel mean | candidate modal, keys `1`–`5` | nothing |
+| GitHub repo reports (fork, commit spread, owner match, tests/CI/README) | under any answer with a GitHub link | optional `GITHUB_TOKEN` for higher rate limits |
+| Inline Figma previews | under answers with Figma links | nothing |
+| Keyboard review (`J`/`K`, `P`/`X`/`U`, `?`) and ⌘K palette | everywhere | nothing |
+| Rubric editor | Questions & rubrics page | nothing |
+
+Run the backend smoke test against a local copy of the data:
+`SMOKE_MONGO=mongodb://127.0.0.1:27099/mfc_migrate npm run smoke`
