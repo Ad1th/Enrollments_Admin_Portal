@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, Button } from "./ResultComponents";
 import {
   FaTimes,
@@ -339,7 +340,9 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
     );
   };
 
-  return (
+  // Portalled to <body>: the page wrapper animates with a transform, which
+  // would otherwise make this "fixed" overlay relative to the wrapper.
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -639,6 +642,8 @@ const UserDetailModal = ({ user, onClose, onUserUpdate, users = [], onNavigate }
         </div>
       </div>
     </div>
+    ,
+    document.body
   );
 };
 
