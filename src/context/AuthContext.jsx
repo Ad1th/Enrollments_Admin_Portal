@@ -12,6 +12,14 @@ function isTokenExpired(token) {
   }
 }
 
+const emailFromToken = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1])).email || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -54,7 +62,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{ user, token, login, logout, loading, adminEmail: token ? emailFromToken(token) : null }}
+    >
       {children}
     </AuthContext.Provider>
   );

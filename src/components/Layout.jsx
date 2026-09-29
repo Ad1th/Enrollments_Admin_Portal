@@ -1,7 +1,8 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt } from 'react-icons/fa';
+import CommandPalette from './CommandPalette';
+import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt, FaCalendarAlt, FaUserTie, FaEnvelope, FaChartBar, FaCog } from 'react-icons/fa';
 
 const Sidebar = () => {
   const { logout } = useAuth();
@@ -18,6 +19,13 @@ const Sidebar = () => {
     { path: '/tech', icon: <FaLaptopCode />, label: 'Tech' },
     { path: '/design', icon: <FaPaintBrush />, label: 'Design' },
     { path: '/management', icon: <FaTasks />, label: 'Management' },
+    { path: '/similarity', icon: <FaClone />, label: 'Copy check' },
+    { path: '/questions', icon: <FaListAlt />, label: 'Questions & rubrics' },
+    { path: '/interviews', icon: <FaCalendarAlt />, label: 'Interviews' },
+    { path: '/interviewers', icon: <FaUserTie />, label: 'Interviewers' },
+    { path: '/comms', icon: <FaEnvelope />, label: 'Comms' },
+    { path: '/stats', icon: <FaChartBar />, label: 'Stats' },
+    { path: '/settings', icon: <FaCog />, label: 'Onboarding' },
   ];
 
   return (
@@ -52,7 +60,7 @@ const Sidebar = () => {
         <span style={{ fontWeight: 'bold', fontSize: '20px', color: 'var(--text-main)' }}>MFC Admin</span>
       </div>
 
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -120,6 +128,7 @@ const Layout = () => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
+      <CommandPalette />
       <div style={{ marginLeft: '260px', flex: 1, padding: '32px', minHeight: '100vh', backgroundColor: 'var(--bg-dark)' }}>
         <div className="fade-in">
             <Outlet />
