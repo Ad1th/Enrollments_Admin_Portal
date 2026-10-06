@@ -115,6 +115,10 @@ export const adminService = {
 
   getMeetings: async (params) => (await api.get(`/admin/meetings`, { params })).data,
   updateMeeting: async (id, fields) => (await api.patch(`/admin/meetings/${id}`, fields)).data,
+  scheduleInterview: async (data) => (await api.post(`/admin/meetings/schedule`, data)).data,
+  getInterviewSlots: async (params) => (await api.get(`/admin/interview-slots`, { params })).data,
+  createInterviewSlots: async (data) => (await api.post(`/admin/interview-slots`, data)).data,
+  deleteInterviewSlot: async (id) => (await api.delete(`/admin/interview-slots/${id}`)).data,
 
   getOnboarding: async () => (await api.get(`/admin/settings/onboarding`)).data,
   saveOnboarding: async (value) => (await api.put(`/admin/settings/onboarding`, value)).data,

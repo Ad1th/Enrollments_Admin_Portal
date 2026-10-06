@@ -80,7 +80,14 @@ import {
   deleteInterviewer,
   importInterviewers,
 } from "./controllers/interviewerController.js";
-import { listMeetings, updateMeeting } from "./controllers/meetingController.js";
+import {
+  listMeetings,
+  updateMeeting,
+  getInterviewSlots,
+  createInterviewSlots,
+  deleteInterviewSlot,
+  scheduleInterview,
+} from "./controllers/meetingController.js";
 import { getOnboarding, saveOnboarding, listOffers } from "./controllers/settingsController.js";
 import {
   previewAudience,
@@ -136,6 +143,10 @@ adminRouter.patch("/interviewers/:id", updateInterviewer);
 adminRouter.delete("/interviewers/:id", deleteInterviewer);
 adminRouter.get("/meetings", listMeetings);
 adminRouter.patch("/meetings/:id", updateMeeting);
+adminRouter.post("/meetings/schedule", scheduleInterview);
+adminRouter.get("/interview-slots", getInterviewSlots);
+adminRouter.post("/interview-slots", createInterviewSlots);
+adminRouter.delete("/interview-slots/:id", deleteInterviewSlot);
 adminRouter.get("/settings/onboarding", getOnboarding);
 adminRouter.put("/settings/onboarding", saveOnboarding);
 adminRouter.get("/offers", listOffers);
