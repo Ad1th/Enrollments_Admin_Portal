@@ -94,6 +94,7 @@ import {
   trackOpen,
 } from "./controllers/commsController.js";
 import { getStats } from "./controllers/statsController.js";
+import { schedulePanels } from "./controllers/schedulerController.js";
 
 // Open-tracking pixel for comms mails; public by nature, only ever sets openedAt.
 app.get("/t/:id", trackOpen);
@@ -148,6 +149,7 @@ adminRouter.post("/comms/campaigns", createCampaign);
 adminRouter.post("/comms/campaigns/:id/send", sendBatch);
 adminRouter.post("/comms/campaigns/:id/retry", retryFailed);
 adminRouter.get("/stats", getStats);
+adminRouter.post("/schedule-panels", schedulePanels);
 
 app.use("/admin", adminRouter);
 
