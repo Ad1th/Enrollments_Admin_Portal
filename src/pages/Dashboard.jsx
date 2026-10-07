@@ -32,7 +32,6 @@ const SUBDOMAINS = {
   tech: [
     { label: "Frontend", value: "frontend" },
     { label: "Backend", value: "backend" },
-    { label: "Cyber Security", value: "cyber-sec" },
     { label: "App Dev", value: "app" },
     { label: "AI/ML", value: "ml" },
     { label: "CP", value: "cp" },
@@ -44,7 +43,6 @@ const SUBDOMAINS = {
   ],
   management: [
     { label: "Outreach", value: "outreach" },
-    { label: "General Ops", value: "generaloperations" },
     { label: "Publicity", value: "publicity" },
     { label: "Events", value: "events" },
   ],
@@ -67,6 +65,12 @@ const Dashboard = ({ defaultDomain }) => {
   const [filterDate, setFilterDate] = useState(""); // YYYY-MM-DD
   const [selectedSubdomains, setSelectedSubdomains] = useState([]); // Array of strings
   const [showSubmittedOnly, setShowSubmittedOnly] = useState(false); // Filter for submitted
+
+    // ===== PHASE 1: DASHBOARD STATS =====
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  
 
   // ?open=<userId> (from the command palette) opens that candidate once loaded.
   const location = useLocation();
@@ -103,6 +107,23 @@ const Dashboard = ({ defaultDomain }) => {
       setDataLoading(false);
     }
   }, [defaultDomain]);
+  
+
+  const fetchDashboardStats = async () => {
+    try {
+      setStatsLoading(true);
+
+      const response = await adminService.getStats();
+
+      setStats(response.data);
+    } catch (error) {
+      console.error("Failed to fetch dashboard statistics:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+
 
   const navigate =
     window.location && window.location.pathname ? null : undefined;
@@ -112,6 +133,10 @@ const Dashboard = ({ defaultDomain }) => {
       return;
     }
     fetchUsers();
+
+    // ===== PHASE 1: Fetch Dashboard Statistics =====
+    fetchDashboardStats();
+    
     setSelectedSubdomains([]); // Reset subdomains on domain change
     setShowUserList(false); // Hide list on domain change
   }, [defaultDomain, fetchUsers, token, authLoading]);
@@ -450,6 +475,29 @@ const Dashboard = ({ defaultDomain }) => {
       </div>
     );
   };
+  // ===== PHASE 1: Dashboard KPI Values =====
+
+  const totalApplicants = stats?.totals?.registered ?? 0;
+
+  const totalSubmitted =
+    stats?.funnel?.reduce(
+      (total, domain) => total + (domain.submitted || 0),
+      0
+    ) ?? 0;
+
+  const totalShortlisted =
+    stats?.funnel?.reduce(
+      (total, domain) => total + (domain.shortlisted || 0),
+      0
+    ) ?? 0;
+
+  const totalSelected =
+    stats?.funnel?.reduce(
+      (total, domain) => total + (domain.selected || 0),
+      0
+    ) ?? 0;
+
+
 
   return (
     <div className="container" style={{ maxWidth: "1600px" }}>
@@ -553,7 +601,7 @@ const Dashboard = ({ defaultDomain }) => {
             style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
           >
             <h3 style={{ color: "var(--primary)", fontSize: 32, margin: 0 }}>
-              {summary.total}
+              {statsLoading ? "..." : totalApplicants}
             </h3>
             <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
               Total Applicants
@@ -563,7 +611,7 @@ const Dashboard = ({ defaultDomain }) => {
             style={{ minWidth: 200, flex: 1, padding: 24, textAlign: "center" }}
           >
             <h3 style={{ color: "#22c55e", fontSize: 32, margin: 0 }}>
-              {summary.totalSubmitted}
+              {statsLoading ? "..." : totalSubmitted}
             </h3>
             <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>
               Submitted
@@ -604,11 +652,15 @@ const Dashboard = ({ defaultDomain }) => {
             </h3>
             <ResponsiveContainer
               width="100%"
-              height="100%"
+              height={250}
               minWidth={350}
-              minHeight={350}
+              
             >
-              <BarChart data={statusData}>
+              <BarChart
+                data={statusData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+                barCategoryGap="30%"
+              >
                 <XAxis
                   dataKey="name"
                   stroke="var(--text-muted)"
@@ -624,7 +676,8 @@ const Dashboard = ({ defaultDomain }) => {
                 <Bar
                   dataKey="value"
                   fill="var(--primary)"
-                  radius={[4, 4, 0, 0]}
+                  barSize={40}
+                  radius={[6, 6, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -644,11 +697,15 @@ const Dashboard = ({ defaultDomain }) => {
             </h3>
             <ResponsiveContainer
               width="100%"
-              height="100%"
+              height={250}
               minWidth={350}
-              minHeight={350}
+    
             >
-              <BarChart data={trendData}>
+              <BarChart
+              data={trendData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              barCategoryGap="30%"
+              >
                 <XAxis
                   dataKey="date"
                   stroke="var(--text-muted)"
@@ -661,7 +718,7 @@ const Dashboard = ({ defaultDomain }) => {
                     borderColor: "var(--border-color)",
                   }}
                 />
-                <Bar dataKey="count" fill="#00C49F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#00C49F" barSize={40} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
