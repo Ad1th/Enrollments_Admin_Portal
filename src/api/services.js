@@ -63,8 +63,23 @@ export const adminService = {
     return response.data;
   },
 
+  getQuestionsByDomain: async (domain) => {
+    const response = await api.get(`/admin/questions`, { params: { domain } });
+    return response.data;
+  },
+
+  createQuestion: async (fields) => {
+    const response = await api.post(`/admin/questions`, fields);
+    return response.data;
+  },
+
   updateQuestion: async (key, fields) => {
     const response = await api.patch(`/admin/questions/${key}`, fields);
+    return response.data;
+  },
+
+  deleteQuestion: async (key) => {
+    const response = await api.delete(`/admin/questions/${key}`);
     return response.data;
   },
 

@@ -68,7 +68,7 @@ import {
   getSubdomainSubmissionStatus,
   getUserHistory,
 } from "./controllers/adminController.js";
-import { listQuestions, updateQuestion } from "./controllers/questionController.js";
+import { listQuestions, createQuestion, updateQuestion, deleteQuestion } from "./controllers/questionController.js";
 import { runAiReview, listAiReviews } from "./controllers/aiReviewController.js";
 import { getSimilarity } from "./controllers/similarityController.js";
 import { saveReview, listReviews } from "./controllers/reviewController.js";
@@ -122,7 +122,9 @@ adminRouter.put("/updatestatus/update", updateUserStatus);
 adminRouter.get("/subdomain-status", getSubdomainSubmissionStatus);
 adminRouter.get("/history/:userId", getUserHistory);
 adminRouter.get("/questions", listQuestions);
+adminRouter.post("/questions", createQuestion);
 adminRouter.patch("/questions/:key", updateQuestion);
+adminRouter.delete("/questions/:key", deleteQuestion);
 adminRouter.post("/ai-review", runAiReview);
 adminRouter.get("/ai-review", listAiReviews);
 adminRouter.get("/similarity", getSimilarity);
