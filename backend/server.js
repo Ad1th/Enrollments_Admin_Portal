@@ -8,7 +8,7 @@ import rateLimit from "express-rate-limit";
 dotenv.config();
 
 const app = express();
-const PORT = 5003; // Independent port as planned
+const PORT = process.env.PORT || 5003; // Uses PORT from .env or defaults to 5003
 
 // Add Global Middleware (Crucial for CORS and JSON)
 app.use(cors());
