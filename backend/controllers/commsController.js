@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import EmailTemplate from "../models/EmailTemplate.js";
 import Campaign from "../models/Campaign.js";
 import EmailLog from "../models/EmailLog.js";
+import Meet from "../models/Meet.js";
 import { fillTemplate, renderHtml, sendMail, mailConfigured } from "../services/mailer.js";
 
 const DOMAINS = ["tech", "design", "management"];
@@ -40,9 +41,27 @@ const findAudience = async (filter = {}) => {
       { $match: { offers: { $elemMatch: { status: filter.offer, ...(domain ? { domain } : {}) } } } }
     );
   }
-  pipeline.push({ $project: { username: 1, email: 1, regno: 1, domain: 1 } });
+  pipeline.push(
+    { $lookup: { from: "meetdetails", localField: "_id", foreignField: "user_id", as: "meetingList" } },
+    {
+      $addFields: {
+        meeting: { $arrayElemAt: ["$meetingList", 0] },
+      },
+    },
+    {
+      $project: {
+        username: 1,
+        email: 1,
+        regno: 1,
+        domain: 1,
+        meeting: 1,
+      },
+    }
+  );
   return User.aggregate(pipeline);
 };
+
+
 
 export const previewAudience = async (req, res) => {
   const users = await findAudience(req.body?.filter);
@@ -138,6 +157,9 @@ export const sendBatch = async (req, res) => {
     if (!log) break;
     processed++;
     const user = await User.findById(log.user_id).select("username regno domain").lean();
+    if (user) {
+      user.meeting = await Meet.findOne({ user_id: user._id }).lean();
+    }
     const text = fillTemplate(campaign.body, user || {});
     try {
       await sendMail({
@@ -146,6 +168,7 @@ export const sendBatch = async (req, res) => {
         text,
         html: renderHtml(text, `${base}/t/${log._id}.gif`),
       });
+
       await EmailLog.updateOne({ _id: log._id }, { $set: { status: "sent", sentAt: new Date(), error: "" } });
     } catch (err) {
       await EmailLog.updateOne({ _id: log._id }, { $set: { status: "failed", error: String(err.message).slice(0, 300) } });

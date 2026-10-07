@@ -46,6 +46,7 @@ const AppRoutes = () => {
         <Route path="interviewers" element={<Interviewers />} />
         <Route path="comms" element={<Comms />} />
         <Route path="stats" element={<Stats />} />
+        <Route path="links" element={<Settings />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

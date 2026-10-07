@@ -14,7 +14,7 @@ const getTransporter = () => {
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-// {{name}}, {{firstName}}, {{regno}}, {{domains}}, {{portalUrl}}
+// {{name}}, {{firstName}}, {{regno}}, {{domains}}, {{portalUrl}}, {{interviewDate}}, {{interviewTime}}, {{meetLink}}
 export const fillTemplate = (text, user) => {
   const vars = {
     name: user.username || "there",
@@ -22,9 +22,13 @@ export const fillTemplate = (text, user) => {
     regno: user.regno || "",
     domains: (user.domain || []).join(", "),
     portalUrl: process.env.CANDIDATE_PORTAL_URL || "",
+    interviewDate: user.interviewDate || (user.meeting?.scheduledTime ? new Date(user.meeting.scheduledTime).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }) : "TBA"),
+    interviewTime: user.interviewTime || (user.meeting?.scheduledTime ? new Date(user.meeting.scheduledTime).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" }) : "TBA"),
+    meetLink: user.meetLink || user.meeting?.gmeetLink || "",
   };
   return String(text).replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => (key in vars ? vars[key] : m));
 };
+
 
 // Plain text in, simple branded HTML out: escaped, links clickable, line
 // breaks kept, plus the open-tracking pixel.

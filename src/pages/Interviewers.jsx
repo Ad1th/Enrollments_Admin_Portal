@@ -105,8 +105,21 @@ const Interviewers = () => {
     load();
   };
 
+  const [filterDomain, setFilterDomain] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
   const active = list.filter((i) => i.active);
   const coverage = DOMAINS.map((d) => [d, active.filter((i) => i.domains.includes(d)).length]);
+
+  const filteredList = list.filter((i) => {
+    const matchesDomain = !filterDomain || i.domains.includes(filterDomain);
+    const matchesSearch =
+      !searchTerm.trim() ||
+      i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      i.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (i.subdomains || []).some((s) => s.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesDomain && matchesSearch;
+  });
 
   return (
     <div className="container" style={{ maxWidth: 1300 }}>
@@ -116,14 +129,25 @@ const Interviewers = () => {
         preferring matching expertise, skipping anyone busy in Google Calendar, marked unavailable, or over their
         daily cap.
       </p>
-      <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
         {coverage.map(([d, n]) => (
-          <Card key={d} style={{ padding: "12px 20px" }}>
+          <Card
+            key={d}
+            onClick={() => setFilterDomain(filterDomain === d ? "" : d)}
+            style={{
+              padding: "12px 20px",
+              cursor: "pointer",
+              border: filterDomain === d ? `1px solid ${DOMAIN_COLOUR[d]}` : "1px solid var(--border-color)",
+              background: filterDomain === d ? `color-mix(in srgb, ${DOMAIN_COLOUR[d]} 15%, var(--bg-card))` : "var(--bg-card)",
+              transition: "all 0.2s ease",
+            }}
+          >
             <span style={{ color: DOMAIN_COLOUR[d], fontWeight: 700, fontSize: 22 }}>{n}</span>{" "}
             <span style={{ color: "var(--text-muted)" }}>active for {d}</span>
           </Card>
         ))}
       </div>
+
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <Card>
@@ -154,6 +178,19 @@ const Interviewers = () => {
       </div>
       {message && <p style={{ color: "var(--primary)", marginBottom: 16 }}>{message}</p>}
 
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
+        <h2 style={{ fontSize: 20, margin: 0 }}>
+          Interviewers Directory ({filteredList.length})
+          {filterDomain && <span style={{ fontSize: 13, color: "var(--text-light)", fontWeight: "normal", marginLeft: 8 }}>filtered by {filterDomain}</span>}
+        </h2>
+        <input
+          style={{ ...input, width: 260, padding: "6px 12px" }}
+          placeholder="Search name, email, expertise..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <Card style={{ padding: 0, overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
@@ -164,12 +201,13 @@ const Interviewers = () => {
             </tr>
           </thead>
           <tbody>
-            {list.map((i) => (
+            {filteredList.map((i) => (
               <tr key={i._id} style={{ borderBottom: "1px solid var(--border-color)", opacity: i.active ? 1 : 0.45 }}>
                 <td style={{ padding: 14 }}>
                   <div style={{ color: "var(--text-main)" }}>{i.name}</div>
                   <div style={{ color: "var(--text-light)", fontSize: 12 }}>{i.email}</div>
                 </td>
+
                 <td style={{ padding: 14 }}>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {DOMAINS.map((d) => (
