@@ -90,7 +90,8 @@ const PanelEditor = ({ meeting, interviewers, onSave }) => {
 
 // Modal for managing available interview dates and generating slots
 const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
-  const [date, setDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("18:00");
   const [durationMinutes, setDurationMinutes] = useState(30);
@@ -99,6 +100,8 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [filterDomain, setFilterDomain] = useState("");
+  const [filterStatus, setFilterStatus] = useState(""); // "available" | "booked" | ""
 
   if (!isOpen) return null;
 
@@ -106,23 +109,32 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
     setSelectedDomains((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
   };
 
+  // Overnight detection: if endTime <= startTime, it crosses midnight
+  const isOvernight = startTime && endTime && endTime <= startTime;
+
   const handleCreate = async () => {
-    if (!date || !startTime || !endTime) {
-      setError("Date, start time, and end time are required");
+    if (!startDate || !startTime || !endTime) {
+      setError("Start date, start time, and end time are required");
+      return;
+    }
+    if (selectedDomains.length === 0) {
+      setError("Select at least one domain");
       return;
     }
     setLoading(true);
     setError("");
     try {
       await adminService.createInterviewSlots({
-        date,
+        startDate,
+        endDate: endDate || startDate,
         startTime,
         endTime,
         durationMinutes: Number(durationMinutes),
         domains: selectedDomains,
         maxCapacity: Number(maxCapacity),
       });
-      setDate("");
+      setStartDate("");
+      setEndDate("");
       onRefresh();
     } catch (err) {
       setError(err.response?.data?.message || "Could not create interview slots");
@@ -141,12 +153,19 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
     }
   };
 
-  const displayedSlots = filterDate ? slots.filter((s) => s.date === filterDate) : slots;
   const uniqueDates = [...new Set(slots.map((s) => s.date))].sort();
+
+  const displayedSlots = slots.filter((s) => {
+    if (filterDate && s.date !== filterDate) return false;
+    if (filterDomain && !(s.domains || []).includes(filterDomain)) return false;
+    if (filterStatus === "available" && s.bookedCount >= s.maxCapacity) return false;
+    if (filterStatus === "booked" && s.bookedCount < s.maxCapacity) return false;
+    return true;
+  });
 
   return (
     <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-      <div style={{ backgroundColor: "var(--bg-card)", borderRadius: 12, border: "1px solid var(--border-color)", maxWidth: 850, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ backgroundColor: "var(--bg-card)", borderRadius: 12, border: "1px solid var(--border-color)", maxWidth: 900, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 style={{ fontSize: 20, margin: 0 }}>Manage Interview Dates & Slots</h2>
@@ -158,18 +177,27 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
         <div style={{ padding: 24, overflowY: "auto", display: "flex", flexDirection: "column", gap: 24 }}>
           {/* Create new dates & slots form */}
           <Card style={{ padding: 18, border: "1px solid var(--border-color)" }}>
-            <h3 style={{ fontSize: 16, marginBottom: 14, color: "var(--primary)" }}>Add Interview Date & Generate Slots</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 14, color: "var(--primary)" }}>Add Interview Date(s) & Generate Slots</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 14 }}>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Date</label>
-                <input type="date" style={input} value={date} onChange={(e) => setDate(e.target.value)} />
+                <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Start Date</label>
+                <input type="date" style={input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                  End Date <span style={{ color: "var(--text-light)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input type="date" style={input} value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Start Time</label>
                 <input type="time" style={input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>End Time</label>
+                <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                  End Time{" "}
+                  {isOvernight && <span style={{ color: "#f59e42", fontWeight: 600 }}>↪ next day</span>}
+                </label>
                 <input type="time" style={input} value={endTime} onChange={(e) => setEndTime(e.target.value)} />
               </div>
               <div>
@@ -187,6 +215,12 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
                 <input type="number" min={1} max={10} style={input} value={maxCapacity} onChange={(e) => setMaxCapacity(e.target.value)} />
               </div>
             </div>
+
+            {isOvernight && (
+              <p style={{ fontSize: 12, color: "#f59e42", marginBottom: 10, padding: "6px 10px", background: "rgba(245,158,66,0.1)", borderRadius: 6 }}>
+                ⚠ End time is earlier than start time — slots will wrap into the next calendar day (e.g. 22:00 → 01:00 AM).
+              </p>
+            )}
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Allowed Domains</label>
@@ -216,42 +250,75 @@ const ManageSlotsModal = ({ isOpen, onClose, slots, onRefresh }) => {
             </div>
 
             {error && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <Button onClick={handleCreate} disabled={loading || !date}>
-              {loading ? "Generating..." : "+ Generate Slots for Date"}
+            <Button onClick={handleCreate} disabled={loading || !startDate}>
+              {loading ? "Generating..." : `+ Generate Slots${endDate && endDate !== startDate ? " for Date Range" : " for Date"}`}
             </Button>
           </Card>
 
           {/* Configured slots list */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
               <h3 style={{ fontSize: 16, margin: 0 }}>Existing Slots ({displayedSlots.length})</h3>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Filter Date:</span>
-                <select style={{ ...input, width: "auto", padding: "4px 8px", fontSize: 12 }} value={filterDate} onChange={(e) => setFilterDate(e.target.value)}>
-                  <option value="">All Dates ({uniqueDates.length})</option>
-                  {uniqueDates.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
+            </div>
+
+            {/* Filter row */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Filters:</span>
+              <select
+                style={{ ...input, width: "auto", padding: "4px 8px", fontSize: 12 }}
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              >
+                <option value="">All Dates ({uniqueDates.length})</option>
+                {uniqueDates.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select
+                style={{ ...input, width: "auto", padding: "4px 8px", fontSize: 12 }}
+                value={filterDomain}
+                onChange={(e) => setFilterDomain(e.target.value)}
+              >
+                <option value="">All Domains</option>
+                {DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select
+                style={{ ...input, width: "auto", padding: "4px 8px", fontSize: 12 }}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="">All Availability</option>
+                <option value="available">Available</option>
+                <option value="booked">Fully Booked</option>
+              </select>
+              {(filterDate || filterDomain || filterStatus) && (
+                <button
+                  onClick={() => { setFilterDate(""); setFilterDomain(""); setFilterStatus(""); }}
+                  style={{ fontSize: 11, background: "none", border: "none", color: "var(--primary)", cursor: "pointer" }}
+                >
+                  Clear filters ✕
+                </button>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10, maxHeight: 320, overflowY: "auto" }}>
-              {displayedSlots.map((s) => (
-                <div key={s._id} style={{ padding: 10, borderRadius: 8, background: "var(--bg-dark)", border: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{s.date} · {timeOf(s.startTime)} - {timeOf(s.endTime)}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-light)", marginTop: 2 }}>
-                      Booked: {s.bookedCount}/{s.maxCapacity} · {(s.domains || []).join(", ")}
+              {displayedSlots.map((s) => {
+                const full = s.bookedCount >= s.maxCapacity;
+                return (
+                  <div key={s._id} style={{ padding: 10, borderRadius: 8, background: "var(--bg-dark)", border: `1px solid ${full ? "rgba(239,68,68,0.3)" : "var(--border-color)"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{s.date} · {timeOf(s.startTime)} – {timeOf(s.endTime)}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-light)", marginTop: 2 }}>
+                        <span style={{ color: full ? "#ef4444" : "#22c55e", fontWeight: 600 }}>{full ? "Full" : "Open"}</span>
+                        {" "}· {s.bookedCount}/{s.maxCapacity} booked · {(s.domains || []).join(", ")}
+                      </div>
                     </div>
+                    {s.bookedCount === 0 && (
+                      <button onClick={() => handleDelete(s._id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14 }}>✕</button>
+                    )}
                   </div>
-                  {s.bookedCount === 0 && (
-                    <button onClick={() => handleDelete(s._id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14 }}>✕</button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {displayedSlots.length === 0 && (
-                <p style={{ color: "var(--text-light)", fontSize: 13 }}>No interview dates/slots configured yet.</p>
+                <p style={{ color: "var(--text-light)", fontSize: 13 }}>No slots match the current filters.</p>
               )}
             </div>
           </div>
