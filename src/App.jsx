@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Participants from "./pages/Participants";
 import Login from './pages/Login';
 import Similarity from './pages/Similarity';
 import Questions from './pages/Questions';
@@ -36,7 +37,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route index element={<Dashboard />} />
-        <Route path="participants" element={<Dashboard />} />
+        <Route path="participants" element={<Participants />} />
         <Route path="tech" element={<Dashboard defaultDomain="tech" />} />
         <Route path="design" element={<Dashboard defaultDomain="design" />} />
         <Route path="management" element={<Dashboard defaultDomain="management" />} />

@@ -11,6 +11,7 @@ import {
   FaDownload,
   FaChartPie,
   FaList,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import UserDetailModal from "../components/UserDetailModal";
 import {
@@ -57,6 +58,7 @@ const Dashboard = ({ defaultDomain }) => {
   const [dataLoading, setDataLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showUpcomingInterviews, setShowUpcomingInterviews] = useState(false); /// Upcoming Interviews Toggle
   const [showAnalytics, setShowAnalytics] = useState(false); // Hide analytics by default
   const [showUserList, setShowUserList] = useState(false); // Default to false
 
@@ -66,11 +68,11 @@ const Dashboard = ({ defaultDomain }) => {
   const [selectedSubdomains, setSelectedSubdomains] = useState([]); // Array of strings
   const [showSubmittedOnly, setShowSubmittedOnly] = useState(false); // Filter for submitted
 
-    // ===== PHASE 1: DASHBOARD STATS =====
+  // ===== PHASE 1: DASHBOARD STATS =====
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
-  
+
 
   // ?open=<userId> (from the command palette) opens that candidate once loaded.
   const location = useLocation();
@@ -107,7 +109,7 @@ const Dashboard = ({ defaultDomain }) => {
       setDataLoading(false);
     }
   }, [defaultDomain]);
-  
+
 
   const fetchDashboardStats = async () => {
     try {
@@ -136,7 +138,7 @@ const Dashboard = ({ defaultDomain }) => {
 
     // ===== PHASE 1: Fetch Dashboard Statistics =====
     fetchDashboardStats();
-    
+
     setSelectedSubdomains([]); // Reset subdomains on domain change
     setShowUserList(false); // Hide list on domain change
   }, [defaultDomain, fetchUsers, token, authLoading]);
@@ -498,6 +500,20 @@ const Dashboard = ({ defaultDomain }) => {
     ) ?? 0;
 
 
+  // ===== UPCOMING INTERVIEWS =====
+
+  const upcomingInterviews = users
+    .filter((user) => {
+      if (!user.meetingTime) return false;
+
+      const interviewTime = new Date(user.meetingTime);
+      return interviewTime > new Date();
+    })
+    .sort((a, b) => {
+      return new Date(a.meetingTime) - new Date(b.meetingTime);
+    })
+    .slice(0, 5);
+
 
   return (
     <div className="container" style={{ maxWidth: "1600px" }}>
@@ -526,63 +542,60 @@ const Dashboard = ({ defaultDomain }) => {
           </h1>
           <p style={{ color: "var(--text-muted)" }}>Analytics & Management</p>
         </div>
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
           <Button
             variant="outline"
             onClick={() => setShowAnalytics(!showAnalytics)}
             title="Toggle Analytics"
             style={{
-              fontSize: 22,
-              padding: "18px 32px",
+              width: "340px",
+              height: "60px",
+              fontSize: "22px",
+              padding: "0 24px",
               fontWeight: 700,
               borderWidth: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <FaChartPie style={{ fontSize: 28, marginRight: 10 }} />{" "}
             {showAnalytics ? "Hide Analytics" : "Show Analytics"}
           </Button>
+
           <Button
             variant="outline"
-            onClick={logout}
+            onClick={() =>
+              setShowUpcomingInterviews(!showUpcomingInterviews)
+            }
+            title="Toggle Upcoming Interviews"
             style={{
-              fontWeight: 600,
-              color: "#ef4444",
-              borderColor: "#ef4444",
+              width: "340px",
+              height: "60px",
+              fontSize: "22px",
+              padding: "0 24px",
+              fontWeight: 700,
+              borderWidth: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            title="Logout"
           >
-            Logout
+            <FaCalendarAlt
+              style={{
+                fontSize: 24,
+                marginRight: 10,
+              }}
+            />
+
+            {showUpcomingInterviews
+              ? "Hide Interviews"
+              : "Upcoming Interviews"}
           </Button>
-          <div
-            className="status-card"
-            style={{
-              backgroundColor: "var(--bg-card)",
-              padding: "12px 24px",
-              borderRadius: "12px",
-              border: "1px solid var(--border-color)",
-            }}
-          >
-            <span
-              style={{
-                display: "block",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                fontWeight: "600",
-                marginBottom: "4px",
-              }}
-            >
-              TOTAL PARTICIPANTS
-            </span>
-            <span
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "var(--primary)",
-              }}
-            >
-              {users.length}
-            </span>
-          </div>
+
+
+
+
         </div>
       </div>
 
@@ -654,7 +667,7 @@ const Dashboard = ({ defaultDomain }) => {
               width="100%"
               height={250}
               minWidth={350}
-              
+
             >
               <BarChart
                 data={statusData}
@@ -699,12 +712,12 @@ const Dashboard = ({ defaultDomain }) => {
               width="100%"
               height={250}
               minWidth={350}
-    
+
             >
               <BarChart
-              data={trendData}
-              margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
-              barCategoryGap="30%"
+                data={trendData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+                barCategoryGap="30%"
               >
                 <XAxis
                   dataKey="date"
@@ -774,6 +787,83 @@ const Dashboard = ({ defaultDomain }) => {
           </Card>
         </div>
       )}
+
+      {showUpcomingInterviews && (
+        <Card
+          className="fade-in"
+          style={{
+            marginBottom: "32px",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "22px",
+                  fontWeight: "700",
+                  color: "var(--text-main)",
+                }}
+              >
+                Upcoming Interviews
+              </h2>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  color: "var(--text-muted)",
+                  fontSize: "14px",
+                }}
+              >
+                Next scheduled interviews
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "32px 24px",
+              textAlign: "center",
+              color: "var(--text-muted)",
+              border: "1px dashed var(--border-color)",
+              borderRadius: "10px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "18px",
+                fontWeight: "600",
+                color: "var(--text-main)",
+                marginBottom: "8px",
+              }}
+            >
+              No interviews scheduled
+            </div>
+
+            <div
+              style={{
+                fontSize: "14px",
+                lineHeight: "1.6",
+              }}
+            >
+              There are currently no upcoming interviews scheduled.
+              <br />
+              Scheduled interviews will appear here automatically.
+            </div>
+          </div>
+        </Card>
+      )}
+
+
+
 
       {/* Subdomain Selectors */}
       <div style={{ marginBottom: "40px" }} className="fade-in">
