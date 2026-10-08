@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CommandPalette from './CommandPalette';
-import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt, FaCalendarAlt, FaUserTie, FaEnvelope, FaChartBar, FaCog } from 'react-icons/fa';
+import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt, FaCalendarAlt, FaUserTie, FaEnvelope, FaChartBar, FaCog, FaLink } from 'react-icons/fa';
 
 const Sidebar = () => {
   const { logout } = useAuth();
@@ -25,6 +25,7 @@ const Sidebar = () => {
     { path: '/interviewers', icon: <FaUserTie />, label: 'Interviewers' },
     { path: '/comms', icon: <FaEnvelope />, label: 'Comms' },
     { path: '/stats', icon: <FaChartBar />, label: 'Stats' },
+    { path: '/links', icon: <FaLink />, label: 'Links' },
     { path: '/settings', icon: <FaCog />, label: 'Onboarding' },
   ];
 

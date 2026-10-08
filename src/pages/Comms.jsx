@@ -17,7 +17,16 @@ const ROUNDS = [
   [2, "Selected"],
   [3, "Core"],
 ];
-const PLACEHOLDERS = ["{{firstName}}", "{{name}}", "{{regno}}", "{{domains}}", "{{portalUrl}}"];
+const PLACEHOLDERS = [
+  "{{firstName}}",
+  "{{name}}",
+  "{{regno}}",
+  "{{domains}}",
+  "{{portalUrl}}",
+  "{{interviewDate}}",
+  "{{interviewTime}}",
+  "{{meetLink}}",
+];
 
 // Sends campaigns batch by batch from the browser so no single request runs
 // long enough to hit the serverless timeout. Closing the tab just pauses it.

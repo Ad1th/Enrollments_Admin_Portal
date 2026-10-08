@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 export const login = async (req, res) => {
   try {
-    const secret = process.env.ACCESS_TOKEN_SECERT;
+    const secret = process.env.ACCESS_TOKEN_SECERT || process.env.ACCESS_TOKEN_SECRET;
     if (!secret) {
       return res.status(500).json({ message: "Server misconfigured" });
     }

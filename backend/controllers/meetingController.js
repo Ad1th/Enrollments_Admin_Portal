@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Meet from "../models/Meet.js";
 import PanelAssignment from "../models/PanelAssignment.js";
 import User from "../models/User.js";
+import InterviewSlot from "../models/InterviewSlot.js";
 import { setEventAttendees } from "../services/googleCalendar.js";
 
 const STATUSES = ["scheduled", "underway", "completed", "cancelled", "no-show"];
@@ -71,3 +72,115 @@ export const updateMeeting = async (req, res) => {
   await meeting.save();
   res.json({ success: true, data: meeting, calendar });
 };
+
+// GET /admin/interview-slots?date=
+export const getInterviewSlots = async (req, res) => {
+  const query = {};
+  if (req.query.date) query.date = req.query.date;
+  if (req.query.domain) query.domains = req.query.domain;
+  
+  const slots = await InterviewSlot.find(query).sort({ startTime: 1 }).lean();
+  res.json({ success: true, data: slots });
+};
+
+// POST /admin/interview-slots
+// Accepts: { date: "YYYY-MM-DD", startTime: "HH:mm" or ISO, endTime: "HH:mm" or ISO, durationMinutes: 30, domains: ["tech", ...], maxCapacity: 1 }
+export const createInterviewSlots = async (req, res) => {
+  const { date, startTime, endTime, durationMinutes = 30, domains = ["tech", "design", "management"], maxCapacity = 1 } = req.body || {};
+  if (!date || !startTime || !endTime) {
+    return res.status(400).json({ message: "Date, start time, and end time are required" });
+  }
+
+  // Parse start and end timestamps
+  let start = new Date(startTime);
+  let end = new Date(endTime);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    start = new Date(`${date}T${startTime}:00`);
+    end = new Date(`${date}T${endTime}:00`);
+  }
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    return res.status(400).json({ message: "Invalid time range" });
+  }
+
+  const durationMs = (Number(durationMinutes) || 30) * 60 * 1000;
+  const createdSlots = [];
+
+  let current = new Date(start);
+  while (current.getTime() + durationMs <= end.getTime()) {
+    const slotEnd = new Date(current.getTime() + durationMs);
+    createdSlots.push({
+      date,
+      startTime: new Date(current),
+      endTime: slotEnd,
+      durationMinutes: Number(durationMinutes) || 30,
+      domains: Array.isArray(domains) && domains.length ? domains : ["tech", "design", "management"],
+      maxCapacity: Number(maxCapacity) || 1,
+      bookedCount: 0,
+      isActive: true,
+    });
+    current = slotEnd;
+  }
+
+  if (createdSlots.length === 0) {
+    return res.status(400).json({ message: "No slots could be generated with the given duration and time range" });
+  }
+
+  const inserted = await InterviewSlot.insertMany(createdSlots);
+  res.status(201).json({ success: true, count: inserted.length, data: inserted });
+};
+
+// DELETE /admin/interview-slots/:id
+export const deleteInterviewSlot = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid id" });
+  const slot = await InterviewSlot.findById(req.params.id);
+  if (!slot) return res.status(404).json({ message: "Slot not found" });
+
+  if (slot.bookedCount > 0) {
+    return res.status(400).json({ message: "Cannot delete slot that has bookings" });
+  }
+
+  await slot.deleteOne();
+  res.json({ success: true, message: "Slot deleted" });
+};
+
+// POST /admin/meetings/schedule
+// Manual direct scheduling for a candidate
+export const scheduleInterview = async (req, res) => {
+  const { user_id, scheduledTime, endTime, domains = [], intervieweremail = [], gmeetLink } = req.body || {};
+  if (!user_id || !scheduledTime || !endTime) {
+    return res.status(400).json({ message: "Candidate (user_id), start time, and end time are required" });
+  }
+
+  if (!mongoose.isValidObjectId(user_id)) {
+    return res.status(400).json({ message: "Invalid user_id" });
+  }
+
+  const candidate = await User.findById(user_id);
+  if (!candidate) {
+    return res.status(404).json({ message: "Candidate not found" });
+  }
+
+  const meeting = await Meet.create({
+    user_id,
+    scheduledTime: new Date(scheduledTime),
+    endTime: new Date(endTime),
+    domains: Array.isArray(domains) && domains.length ? domains : candidate.domain || [],
+    intervieweremail: Array.isArray(intervieweremail) ? intervieweremail : [],
+    panelIncomplete: !intervieweremail || intervieweremail.length === 0,
+    gmeetLink: gmeetLink || "https://meet.google.com/new",
+    status: "scheduled",
+  });
+
+  // Check if there is a matching InterviewSlot to increment bookedCount
+  await InterviewSlot.updateOne(
+    {
+      startTime: { $lte: new Date(scheduledTime) },
+      endTime: { $gte: new Date(endTime) },
+    },
+    { $inc: { bookedCount: 1 } }
+  );
+
+  res.status(201).json({ success: true, data: meeting });
+};
+
