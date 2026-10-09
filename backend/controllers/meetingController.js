@@ -133,6 +133,13 @@ export const createInterviewSlots = async (req, res) => {
       ? domains
       : ["tech", "design", "management"];
 
+    // Find the highest existing slotNumber so all new slots have unique sequential numbers
+    const lastSlot = await InterviewSlot.findOne({ slotNumber: { $ne: null } })
+      .sort({ slotNumber: -1 })
+      .select("slotNumber")
+      .lean();
+    let nextSlotNumber = (lastSlot && typeof lastSlot.slotNumber === "number") ? lastSlot.slotNumber + 1 : 1;
+
     const createdSlots = [];
 
     for (const d of dateList) {
@@ -152,6 +159,7 @@ export const createInterviewSlots = async (req, res) => {
       while (current.getTime() + durationMs <= end.getTime()) {
         const slotEnd = new Date(current.getTime() + durationMs);
         createdSlots.push({
+          slotNumber: nextSlotNumber++,
           date: d,
           startTime: new Date(current),
           endTime: slotEnd,
