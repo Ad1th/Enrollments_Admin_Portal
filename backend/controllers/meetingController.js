@@ -84,51 +84,107 @@ export const getInterviewSlots = async (req, res) => {
 };
 
 // POST /admin/interview-slots
-// Accepts: { date: "YYYY-MM-DD", startTime: "HH:mm" or ISO, endTime: "HH:mm" or ISO, durationMinutes: 30, domains: ["tech", ...], maxCapacity: 1 }
+// Accepts: { startDate/date, endDate, startTime: "HH:mm", endTime: "HH:mm", durationMinutes: 30, domains: [...], maxCapacity: 1 }
 export const createInterviewSlots = async (req, res) => {
-  const { date, startTime, endTime, durationMinutes = 30, domains = ["tech", "design", "management"], maxCapacity = 1 } = req.body || {};
-  if (!date || !startTime || !endTime) {
-    return res.status(400).json({ message: "Date, start time, and end time are required" });
-  }
-
-  // Parse start and end timestamps
-  let start = new Date(startTime);
-  let end = new Date(endTime);
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    start = new Date(`${date}T${startTime}:00`);
-    end = new Date(`${date}T${endTime}:00`);
-  }
-
-  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
-    return res.status(400).json({ message: "Invalid time range" });
-  }
-
-  const durationMs = (Number(durationMinutes) || 30) * 60 * 1000;
-  const createdSlots = [];
-
-  let current = new Date(start);
-  while (current.getTime() + durationMs <= end.getTime()) {
-    const slotEnd = new Date(current.getTime() + durationMs);
-    createdSlots.push({
+  try {
+    const {
       date,
-      startTime: new Date(current),
-      endTime: slotEnd,
-      durationMinutes: Number(durationMinutes) || 30,
-      domains: Array.isArray(domains) && domains.length ? domains : ["tech", "design", "management"],
-      maxCapacity: Number(maxCapacity) || 1,
-      bookedCount: 0,
-      isActive: true,
-    });
-    current = slotEnd;
-  }
+      startDate = date,
+      endDate,
+      startTime,
+      endTime,
+      durationMinutes = 30,
+      domains,
+      maxCapacity = 1,
+    } = req.body || {};
 
-  if (createdSlots.length === 0) {
-    return res.status(400).json({ message: "No slots could be generated with the given duration and time range" });
-  }
+    const resolvedEndDate = endDate || startDate || date;
 
-  const inserted = await InterviewSlot.insertMany(createdSlots);
-  res.status(201).json({ success: true, count: inserted.length, data: inserted });
+    if (!startDate || !startTime || !endTime) {
+      return res.status(400).json({ message: "Start date, start time, and end time are required" });
+    }
+
+    const durationMs = (Number(durationMinutes) || 30) * 60 * 1000;
+    if (durationMs <= 0) {
+      return res.status(400).json({ message: "Duration must be greater than 0" });
+    }
+
+    // Validate startTime / endTime format (must be HH:mm)
+    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+      return res.status(400).json({ message: "Times must be in HH:mm format" });
+    }
+
+    // Generate list of date strings (YYYY-MM-DD) between startDate and endDate
+    const sDate = new Date(`${startDate}T00:00:00`);
+    const eDate = new Date(`${resolvedEndDate}T00:00:00`);
+
+    if (isNaN(sDate.getTime()) || isNaN(eDate.getTime()) || eDate < sDate) {
+      return res.status(400).json({ message: "Invalid date range" });
+    }
+
+    const dateList = [];
+    let currDate = new Date(sDate);
+    while (currDate <= eDate) {
+      dateList.push(currDate.toISOString().split("T")[0]);
+      currDate.setDate(currDate.getDate() + 1);
+    }
+
+    const resolvedDomains = Array.isArray(domains) && domains.length
+      ? domains
+      : ["tech", "design", "management"];
+
+    // Find the highest existing slotNumber so all new slots have unique sequential numbers
+    const lastSlot = await InterviewSlot.findOne({ slotNumber: { $ne: null } })
+      .sort({ slotNumber: -1 })
+      .select("slotNumber")
+      .lean();
+    let nextSlotNumber = (lastSlot && typeof lastSlot.slotNumber === "number") ? lastSlot.slotNumber + 1 : 1;
+
+    const createdSlots = [];
+
+    for (const d of dateList) {
+      let start = new Date(`${d}T${startTime}:00`);
+      let end = new Date(`${d}T${endTime}:00`);
+
+      // If end <= start, the session crosses midnight (e.g. 22:00 → 01:00 next day)
+      if (end <= start) {
+        end.setDate(end.getDate() + 1);
+      }
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+        continue;
+      }
+
+      let current = new Date(start);
+      while (current.getTime() + durationMs <= end.getTime()) {
+        const slotEnd = new Date(current.getTime() + durationMs);
+        createdSlots.push({
+          slotNumber: nextSlotNumber++,
+          date: d,
+          startTime: new Date(current),
+          endTime: slotEnd,
+          durationMinutes: Number(durationMinutes) || 30,
+          domains: resolvedDomains,
+          maxCapacity: Number(maxCapacity) || 1,
+          bookedCount: 0,
+          isActive: true,
+        });
+        current = slotEnd;
+      }
+    }
+
+    if (createdSlots.length === 0) {
+      return res.status(400).json({ message: "No slots could be generated with the given duration and time range" });
+    }
+
+    const inserted = await InterviewSlot.insertMany(createdSlots);
+    res.status(201).json({ success: true, count: inserted.length, data: inserted });
+  } catch (err) {
+    console.error("createInterviewSlots error:", err);
+    res.status(500).json({ message: err.message || "Failed to create interview slots" });
+  }
 };
+
 
 // DELETE /admin/interview-slots/:id
 export const deleteInterviewSlot = async (req, res) => {

@@ -3,6 +3,10 @@ const Schema = mongoose.Schema;
 
 const InterviewSlotSchema = new Schema(
   {
+    slotNumber: {
+      type: Number,
+      index: true,
+    },
     date: {
       type: String,
       required: true,

@@ -171,4 +171,11 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log(`Admin backend on http://localhost:${PORT}`));
 }
 
+// Global error handler — catches any unhandled throw from route handlers
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ message: err.message || "Internal server error" });
+});
+
 export default app;
