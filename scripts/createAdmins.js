@@ -4,7 +4,8 @@
 //   node scripts/createAdmins.js people.csv                 (dry run)
 //   node scripts/createAdmins.js people.csv --apply --out creds.csv
 //
-// people.csv: role,name,email   (role = owner | full | viewer; no header row)
+// people.csv: role,name,email[,password]   (role = owner | full | viewer; no header row)
+// A fourth column sets that person's password; otherwise one is generated.
 // Existing accounts keep their password unless --reset-passwords is given.
 import fs from "fs";
 import crypto from "crypto";
@@ -32,8 +33,8 @@ const people = fs
   .map((l) => l.trim())
   .filter(Boolean)
   .map((l) => {
-    const [role, name, email] = l.split(",").map((s) => s.trim());
-    return { role, name, email: (email || "").toLowerCase() };
+    const [role, name, email, password] = l.split(",").map((s) => s.trim());
+    return { role, name, email: (email || "").toLowerCase(), password: password || null };
   });
 const bad = people.filter((p) => !ROLES.has(p.role) || !p.name || !/^\S+@\S+\.\S+$/.test(p.email));
 if (bad.length) {
@@ -55,7 +56,7 @@ const tally = { created: 0, updated: 0 };
 for (const p of people) {
   const existing = await User.findOne({ email: p.email }).select("_id password");
   const setPassword = !existing || !existing.password || reset;
-  const password = setPassword ? makePassword() : null;
+  const password = setPassword ? p.password || makePassword() : null;
   existing ? tally.updated++ : tally.created++;
   console.log(`${apply ? "" : "[dry run] "}${existing ? "update" : "create"} ${p.role.padEnd(6)} ${p.email}${setPassword ? "" : " (password kept)"}`);
   if (!apply) continue;
@@ -69,7 +70,7 @@ for (const p of people) {
     },
     { upsert: true }
   );
-  if (password) creds.push(`${p.role},${p.name},${p.email},${password}`);
+  if (password && !p.password) creds.push(`${p.role},${p.name},${p.email},${password}`);
 }
 if (apply && creds.length) fs.writeFileSync(out, `role,name,email,password\n${creds.join("\n")}\n`, { mode: 0o600 });
 console.log(`${apply ? "" : "[dry run] "}${tally.created} new, ${tally.updated} updated${apply && creds.length ? `; passwords written to ${out}` : ""}`);
