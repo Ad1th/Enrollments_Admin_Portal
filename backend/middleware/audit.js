@@ -42,6 +42,7 @@ export const auditTrail = (req, res, next) => {
     const write = req.method !== "GET" && req.method !== "HEAD";
     const finish = () => originalEnd.apply(res, args);
     writeAudit({
+      source: "admin",
       kind: write ? "write" : "read",
       actorId: req.user?.id || null,
       actorEmail: req.user?.email || null,

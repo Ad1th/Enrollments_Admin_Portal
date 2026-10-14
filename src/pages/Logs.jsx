@@ -15,6 +15,7 @@ const statusColor = (s) => (s >= 500 ? "#ef4444" : s >= 400 ? "#f59e0b" : "#22c5
 const Logs = () => {
   const [rows, setRows] = useState([]);
   const [next, setNext] = useState(null);
+  const [source, setSource] = useState("admin");
   const [kind, setKind] = useState("write");
   const [actor, setActor] = useState("");
   const [q, setQ] = useState("");
@@ -27,7 +28,7 @@ const Logs = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await adminService.getLogs({ kind, actor, q, before, limit: 100 });
+        const res = await adminService.getLogs({ source, kind, actor, q, before, limit: 100 });
         setRows((prev) => (before ? [...prev, ...res.data] : res.data));
         setNext(res.nextBefore);
       } catch (err) {
@@ -36,7 +37,7 @@ const Logs = () => {
         setLoading(false);
       }
     },
-    [kind, actor, q]
+    [source, kind, actor, q]
   );
 
   useEffect(() => {
@@ -46,15 +47,27 @@ const Logs = () => {
   return (
     <div>
       <h1 style={{ marginBottom: 4 }}>Activity log</h1>
-      <p style={{ color: "var(--text-muted)", marginTop: 0 }}>Only you can see this page.</p>
+      <p style={{ color: "var(--text-muted)", marginTop: 0 }}>Only owners can see this page.</p>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        {[["admin", "Admin portal"], ["candidate", "Candidate portal"]].map(([v, l]) => (
+          <button
+            key={v}
+            onClick={() => { setSource(v); setRows([]); setNext(null); setOpen(null); }}
+            style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 600, border: "1px solid var(--border-color)", background: source === v ? "rgba(252,122,0,0.15)" : "var(--bg-card)", color: source === v ? "var(--primary)" : "var(--text-muted)" }}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "16px 0" }}>
         <select value={kind} onChange={(e) => setKind(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--bg-card)", color: "var(--text-main)", border: "1px solid var(--border-color)" }}>
-          {KINDS.map(([v, l]) => (
+          {KINDS.filter(([v]) => source === "admin" || v !== "read").map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
-        <Input placeholder="Filter by admin email" value={actor} onChange={(e) => setActor(e.target.value)} style={{ maxWidth: 260 }} />
+        <Input placeholder={source === "admin" ? "Filter by admin email" : "Filter by candidate email"} value={actor} onChange={(e) => setActor(e.target.value)} style={{ maxWidth: 260 }} />
         <Input placeholder="Filter by route, e.g. /reviews" value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 260 }} />
         <Button variant="secondary" onClick={() => load()}>Refresh</Button>
       </div>

@@ -1,9 +1,11 @@
 import AuditLog from "../models/AuditLog.js";
 
-// GET ?limit=100&before=<iso>&actor=<email part>&kind=login|read|write&status=<n>&q=<path part>
+// GET ?source=admin|candidate&limit=100&before=<iso>&actor=<email part>&kind=login|read|write&status=<n>&q=<path part>
 export const listAuditLogs = async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
   const filter = {};
+  // Rows written before `source` existed are admin rows.
+  filter.source = req.query.source === "candidate" ? "candidate" : { $ne: "candidate" };
   if (req.query.before) {
     const before = new Date(req.query.before);
     if (!Number.isNaN(before.getTime())) filter.at = { $lt: before };

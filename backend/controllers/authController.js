@@ -20,7 +20,7 @@ export const login = async (req, res) => {
     // the login form can't be used to discover which emails exist.
     if (!isValid || !user.admin) {
       await writeAudit({
-        kind: "login", actorId: user ? String(user._id) : null, actorEmail: email, role: user?.role || null,
+        source: "admin", kind: "login", actorId: user ? String(user._id) : null, actorEmail: email, role: user?.role || null,
         method: "POST", path: "/auth/login", status: 401, ip: clientIp(req),
         userAgent: String(req.headers["user-agent"] || "").slice(0, 200), note: "failed login",
       });
@@ -35,7 +35,7 @@ export const login = async (req, res) => {
     );
 
     await writeAudit({
-      kind: "login", actorId: String(user._id), actorEmail: user.email, role,
+      source: "admin", kind: "login", actorId: String(user._id), actorEmail: user.email, role,
       method: "POST", path: "/auth/login", status: 200, ip: clientIp(req),
       userAgent: String(req.headers["user-agent"] || "").slice(0, 200), note: "login",
     });
