@@ -55,6 +55,9 @@ app.get("/health", (req, res) => {
 
 // Auth
 import { verifyAdmin } from "./middleware/auth.js";
+import { auditTrail } from "./middleware/audit.js";
+import { enforceRole, requireOwner } from "./middleware/permissions.js";
+import { listAuditLogs } from "./controllers/auditController.js";
 import authRouter from "./routes/auth.js";
 
 // Routes
@@ -121,6 +124,10 @@ app.use("/auth", authRouter);
 // Admin Routes (Protected)
 const adminRouter = express.Router();
 adminRouter.use(verifyAdmin);
+// Audit first so denied (403) requests are logged too.
+adminRouter.use(auditTrail);
+adminRouter.use(enforceRole);
+adminRouter.get("/logs", requireOwner, listAuditLogs);
 
 adminRouter.get("/users/:id", getAllUsers);
 adminRouter.get("/userstech/:id", getTechUsers);

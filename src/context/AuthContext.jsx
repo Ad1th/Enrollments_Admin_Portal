@@ -20,6 +20,16 @@ const emailFromToken = (token) => {
   }
 };
 
+// The UI reads the role from the token only to decide what to show; the server
+// re-checks it from the database on every request.
+const roleFromToken = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1])).role || "full";
+  } catch (e) {
+    return "full";
+  }
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -63,7 +73,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, loading, adminEmail: token ? emailFromToken(token) : null }}
+      value={{ user, token, login, logout, loading, adminEmail: token ? emailFromToken(token) : null, role: token ? roleFromToken(token) : null }}
     >
       {children}
     </AuthContext.Provider>

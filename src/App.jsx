@@ -12,6 +12,7 @@ import Interviews from './pages/Interviews';
 import Comms from './pages/Comms';
 import Stats from './pages/Stats';
 import Settings from './pages/Settings';
+import Logs from './pages/Logs';
 import './index.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -24,6 +25,12 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children;
+};
+
+// The activity log is for the owner only; everyone else is sent home.
+const OwnerOnly = ({ children }) => {
+  const { role } = useAuth();
+  return role === 'owner' ? children : <Navigate to="/" replace />;
 };
 
 const AppRoutes = () => {
@@ -49,6 +56,7 @@ const AppRoutes = () => {
         <Route path="stats" element={<Stats />} />
         <Route path="links" element={<Settings />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="logs" element={<OwnerOnly><Logs /></OwnerOnly>} />
       </Route>
     </Routes>
   );

@@ -2,10 +2,10 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CommandPalette from './CommandPalette';
-import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt, FaCalendarAlt, FaUserTie, FaEnvelope, FaChartBar, FaCog, FaLink } from 'react-icons/fa';
+import { FaHome, FaUsers, FaLaptopCode, FaPaintBrush, FaTasks, FaSignOutAlt, FaClone, FaListAlt, FaCalendarAlt, FaUserTie, FaEnvelope, FaChartBar, FaCog, FaLink, FaHistory } from 'react-icons/fa';
 
 const Sidebar = () => {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -27,6 +27,7 @@ const Sidebar = () => {
     { path: '/stats', icon: <FaChartBar />, label: 'Stats' },
     { path: '/links', icon: <FaLink />, label: 'Links' },
     { path: '/settings', icon: <FaCog />, label: 'Onboarding' },
+    ...(role === 'owner' ? [{ path: '/logs', icon: <FaHistory />, label: 'Activity log' }] : []),
   ];
 
   return (
@@ -125,12 +126,31 @@ const Sidebar = () => {
   );
 };
 
+// View-only accounts get a standing notice, and a louder one when the server
+// refuses an edit.
+const ReadOnlyBanner = () => {
+  const { role } = useAuth();
+  const [refused, setRefused] = React.useState(false);
+  React.useEffect(() => {
+    const onRefused = () => setRefused(true);
+    window.addEventListener('view-only-refused', onRefused);
+    return () => window.removeEventListener('view-only-refused', onRefused);
+  }, []);
+  if (role !== 'viewer') return null;
+  return (
+    <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 8, fontSize: 13, background: refused ? 'rgba(239,68,68,0.12)' : 'rgba(252,122,0,0.1)', color: refused ? '#ef4444' : 'var(--primary)', border: '1px solid currentColor' }}>
+      {refused ? 'That change was blocked: your account is view-only.' : 'View-only account: you can read, comment and add interview slots.'}
+    </div>
+  );
+};
+
 const Layout = () => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <CommandPalette />
       <div style={{ marginLeft: '260px', flex: 1, padding: '32px', minHeight: '100vh', backgroundColor: 'var(--bg-dark)' }}>
+        <ReadOnlyBanner />
         <div className="fade-in">
             <Outlet />
         </div>

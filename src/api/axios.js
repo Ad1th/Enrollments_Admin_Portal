@@ -30,6 +30,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 403 && /view-only/i.test(error.response?.data?.message || '')) {
+      window.dispatchEvent(new Event('view-only-refused'));
+    }
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('adminId');

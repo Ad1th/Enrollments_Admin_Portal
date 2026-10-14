@@ -16,6 +16,8 @@ const UserSchema = new Schema(
     emailpersonal: { type: String, trim: true, lowercase: true },
     domain: { type: [String], enum: ["tech", "design", "management"], default: [] },
     admin: { type: Boolean, default: false },
+    // Admin portal permission level; unset on an admin means "full".
+    role: { type: String, enum: ["owner", "full", "viewer"], default: undefined },
     isProfileDone: { type: Boolean, required: true, default: false },
     isJC: { type: Boolean },
     isSC: { type: Boolean },

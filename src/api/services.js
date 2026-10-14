@@ -14,6 +14,13 @@ export const authService = {
 };
 
 export const adminService = {
+  // Owner-only audit trail
+  getLogs: async (params = {}) => {
+    const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    const response = await api.get("/admin/logs", { params: clean });
+    return response.data;
+  },
+
   // Fetch all users
   getAllUsers: async (adminId, page = 1, limit = 1000) => {
     // Backend route: /admin/users/:id

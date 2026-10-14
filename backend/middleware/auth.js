@@ -23,11 +23,11 @@ export const verifyAdmin = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findById(decoded.id).select("admin email username");
+    const user = await User.findById(decoded.id).select("admin email username role");
     if (!user || user.admin !== true) {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
-    req.user = { id: String(user._id), email: user.email, username: user.username, admin: true };
+    req.user = { id: String(user._id), email: user.email, username: user.username, admin: true, role: user.role || "full" };
     next();
   } catch (error) {
     return res.status(500).json({ message: "Could not verify admin" });
