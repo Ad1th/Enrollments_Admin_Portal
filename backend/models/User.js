@@ -7,6 +7,9 @@ const UserSchema = new Schema(
     email: { type: String, trim: true, lowercase: true },
     regno: { type: String, trim: true },
     password: { type: String },
+    // Admin-portal-only password. When set it is used for the admin login instead
+    // of `password`, which the candidate portal uses.
+    adminPassword: { type: String, select: false },
     verified: { type: Boolean, required: true, default: false },
     tech: { type: Number, required: true, default: 0 },
     design: { type: Number, required: true, default: 0 },

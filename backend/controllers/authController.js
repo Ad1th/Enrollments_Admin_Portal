@@ -13,8 +13,9 @@ export const login = async (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
 
-    const user = await User.findOne({ email });
-    const isValid = user && user.password && (await bcrypt.compare(password, user.password));
+    const user = await User.findOne({ email }).select("+adminPassword");
+    const hash = user && (user.adminPassword || user.password);
+    const isValid = hash && (await bcrypt.compare(password, hash));
 
     // Same answer for "no such user", "wrong password" and "not an admin", so
     // the login form can't be used to discover which emails exist.
